@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2026-06-03 半导体与黄金基金信息日报</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --paper: #fffdf8;
+      --ink: #1f2a2e;
+      --muted: #69737a;
+      --line: #ddd3c3;
+      --chip: #0f6b5f;
+      --gold: #b87917;
+      --risk: #b33a2f;
+      --ok: #236a3a;
+      --soft-chip: #e6f2ef;
+      --soft-gold: #f7ead2;
+      --soft-risk: #f6dfdc;
+      --shadow: 0 18px 50px rgba(66, 48, 28, 0.11);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 5% 5%, rgba(184, 121, 23, 0.18), transparent 28rem),
+        radial-gradient(circle at 92% 0%, rgba(15, 107, 95, 0.16), transparent 30rem),
+        linear-gradient(180deg, #f7f2e8 0%, #f2eadc 100%);
+      color: var(--ink);
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      line-height: 1.72;
+    }
+    main {
+      width: min(1120px, calc(100% - 28px));
+      margin: 28px auto 52px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: clamp(22px, 3vw, 30px);
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .hero, .section, .note {
+      background: rgba(255, 253, 248, 0.9);
+      border: 1px solid rgba(221, 211, 195, 0.85);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: clamp(22px, 4vw, 40px);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      top: -90px;
+      width: 250px;
+      height: 250px;
+      background: conic-gradient(from 150deg, rgba(15, 107, 95, .2), rgba(184, 121, 23, .18), transparent 72%);
+      border-radius: 50%;
+    }
+    .meta {
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,.5);
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .summary-card, .framework, .action-card, .event-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--paper);
+      padding: 18px;
+    }
+    .summary-card.chip { border-top: 5px solid var(--chip); }
+    .summary-card.gold { border-top: 5px solid var(--gold); }
+    .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .03em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .verdict {
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+    .framework {
+      background: linear-gradient(135deg, rgba(15, 107, 95, .08), rgba(184, 121, 23, .08));
+      margin-top: 16px;
+    }
+    .action-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .action-card {
+      position: relative;
+      padding-top: 20px;
+    }
+    .action-card strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .tag.hold { background: var(--soft-gold); color: #7b4a06; }
+    .tag.wait { background: var(--soft-risk); color: var(--risk); }
+    .tag.buy { background: var(--soft-chip); color: var(--chip); }
+    .mini {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 6px 0 0;
+    }
+    .section {
+      margin-top: 22px;
+      padding: clamp(18px, 3vw, 30px);
+    }
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .event-card p { margin-bottom: 8px; }
+    .event-meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .subhead {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--line);
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #efe6d8;
+      color: #314044;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .up { color: var(--ok); font-weight: 800; }
+    .down { color: var(--risk); font-weight: 800; }
+    .flat { color: var(--muted); font-weight: 800; }
+    .note {
+      margin-top: 22px;
+      padding: 22px;
+      color: var(--muted);
+    }
+    a { color: var(--chip); }
+    @media (max-width: 780px) {
+      main { width: min(100% - 18px, 1120px); margin-top: 12px; }
+      .summary-grid, .action-list, .event-grid { grid-template-columns: 1fr; }
+      .hero, .section, .note { border-radius: 20px; }
+      table { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <div class="meta">
+      <span class="pill">报告日期：2026-06-03</span>
+      <span class="pill">数据时间：2026-06-03 17:05 CST</span>
+      <span class="pill">基金正式净值：截至 2026-06-02</span>
+      <span class="pill">盘中估值：截至 2026-06-03 收盘附近</span>
+    </div>
+    <h1>半导体反弹但不宜追急，黄金承压但防守逻辑仍在</h1>
+
+    <div class="summary-grid">
+      <div class="summary-card chip">
+        <div class="label">半导体一句话总结</div>
+        <p class="verdict">半导体今天估值反弹较明显，但近一周回撤仍深，所以更适合把它理解为高波动后的修复，不适合一次性重仓追入；证据是 012552、021532 今日估值约 +3.31%、+2.59%，但近一周正式净值仍约 -10%。</p>
+      </div>
+      <div class="summary-card gold">
+        <div class="label">黄金一句话总结</div>
+        <p class="verdict">黄金基金今天估值回落，但央行购金和避险需求仍支撑中长期配置，所以当前更适合持有和等待更好分批点；证据是 000218、002611 今日估值约 -1.48%，而世界黄金协会披露 2026 年一季度央行净购金约 244 吨。</p>
+      </div>
+    </div>
+
+    <div class="framework">
+      <h2>今日判断框架</h2>
+      <p>长期逻辑没有明显变化：半导体仍由 AI 算力、先进制造和国产替代支撑；黄金仍由央行购金、实际利率不确定和避险需求支撑。</p>
+      <p>短期波动值得重视但尚未推翻逻辑。半导体更像“强趋势中的剧烈震荡”，黄金更像“高位后的正常整理”。基金交易有确认延时，今天不适合按盘中情绪做大动作，未来几天至几周节奏应偏慢、偏分批。</p>
+      <p><strong>整体态度：</strong>半导体均衡持有、回撤分批；黄金继续持有、暂不追高；主动混合基金要把它当成高波动成长仓，而不是纯半导体或黄金替代品。</p>
+    </div>
+
+    <h2 style="margin-top:24px;">今日操作建议</h2>
+    <div class="action-list">
+      <article class="action-card">
+        <span class="tag buy">谨慎小额操作</span>
+        <strong>012552 天弘芯片产业ETF联接A</strong>
+        <p><b>操作方式：</b>已有定投可按原节奏，小额加仓只适合原计划内执行，不建议一次性重仓。</p>
+        <p class="mini"><b>原因：</b>长期方向仍匹配芯片产业，但近一周跌幅较大、今日又快速反弹，追涨性价比一般。</p>
+        <p class="mini"><b>证据：</b>2026-06-02 净值近 1 月 +13.78%，近 1 周约 -10.19%；2026-06-03 估值 +3.31%。</p>
+      </article>
+      <article class="action-card">
+        <span class="tag wait">暂不追入</span>
+        <strong>021532 天弘半导体设备指数A</strong>
+        <p><b>操作方式：</b>持有为主，新增资金等回撤分批；今日不建议追高买入。</p>
+        <p class="mini"><b>原因：</b>设备弹性更高，受国产替代和资本开支支撑，但短线波动也更强。</p>
+        <p class="mini"><b>证据：</b>2026-06-02 净值近 1 月 +15.41%，近 1 周约 -10.63%；2026-06-03 估值 +2.59%。</p>
+      </article>
+      <article class="action-card">
+        <span class="tag wait">持有并核验仓位</span>
+        <strong>006533 易方达科融混合</strong>
+        <p><b>操作方式：</b>不把它当半导体替代加仓；已有仓位可持有，新增前先核验组合持仓和自身仓位。</p>
+        <p class="mini"><b>原因：</b>这是主动混合基金，涨跌来自基金经理配置，不等同于芯片或黄金指数。</p>
+        <p class="mini"><b>证据：</b>近 1 月 +13.23%，近 1 日 +3.98%，今日估值 +2.13%，弹性已经很高。</p>
+      </article>
+      <article class="action-card">
+        <span class="tag hold">继续持有</span>
+        <strong>000218 国泰黄金ETF联接A</strong>
+        <p><b>操作方式：</b>防守仓继续持有，今日不建议追高，也不建议因单日估值回落减仓。</p>
+        <p class="mini"><b>原因：</b>黄金短线受高位整理和美元/利率扰动，但组合防守价值还在。</p>
+        <p class="mini"><b>证据：</b>近 1 月 -2.64%，今日估值 -1.48%；一季度央行购金仍强。</p>
+      </article>
+      <article class="action-card">
+        <span class="tag hold">继续持有</span>
+        <strong>002611 博时黄金ETF联接C</strong>
+        <p><b>操作方式：</b>作为黄金防守仓持有；C 类更适合短中期持有需求，今日不新增大额。</p>
+        <p class="mini"><b>原因：</b>与 000218 同属黄金方向，近期表现接近，重点是控制组合黄金总仓位。</p>
+        <p class="mini"><b>证据：</b>近 1 月 -2.67%，今日估值 -1.48%，与黄金现货高位整理一致。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>信息事件层</h2>
+    <h3>长期信息总结</h3>
+    <div class="event-grid">
+      <article class="event-card">
+        <p><b>AI 算力仍是半导体主线。</b>Gartner 4 月预测 2026 年全球半导体收入超过 1.3 万亿美元，并指出 AI 处理、数据中心网络、电力和存储价格是主要驱动。</p>
+        <div class="event-meta">影响对象：半导体 | 时间：2026-04-08 | 来源：Gartner | 可信度：高 | 为什么看：验证长期需求不是单日情绪。</div>
+      </article>
+      <article class="event-card">
+        <p><b>设备和先进制造仍有景气支撑。</b>AI 基建投资继续推动 GPU、定制芯片、先进封装和制造设备需求，设备指数基金的长期逻辑仍在。</p>
+        <div class="event-meta">影响对象：半导体 | 时间：2026 年二季度 | 来源：Gartner、Nasdaq 指数资料 | 可信度：中高 | 为什么看：解释 021532 弹性来源。</div>
+      </article>
+      <article class="event-card">
+        <p><b>黄金的中长期买盘没有消失。</b>世界黄金协会披露 2026 年一季度全球央行净购金约 244 吨，高于五年均值。</p>
+        <div class="event-meta">影响对象：黄金 | 时间：2026-04-29 | 来源：World Gold Council | 可信度：高 | 为什么看：央行购金是黄金长期支撑之一。</div>
+      </article>
+      <article class="event-card">
+        <p><b>利率仍是黄金短线压力来源。</b>10 年期美债收益率仍处近年偏高区间，实际利率若再上行，会压制黄金估值。</p>
+        <div class="event-meta">影响对象：黄金 | 时间：截至 2026 年 5 月可得数据 | 来源：FRED | 可信度：高 | 为什么看：解释黄金为何有防守逻辑但不宜追高。</div>
+      </article>
+    </div>
+
+    <h3 class="subhead">近期信息一览</h3>
+    <div class="event-grid">
+      <article class="event-card">
+        <p><b>半导体基金今日估值反弹。</b>012552、021532 在天天基金估算中分别上涨约 +3.31%、+2.59%，说明昨日正式净值后的风险偏好有所修复。</p>
+        <div class="event-meta">影响对象：半导体 | 时间：2026-06-03 15:00 | 来源：天天基金估值 | 可信度：中 | 为什么看：估值未确认，但能反映当天方向。</div>
+      </article>
+      <article class="event-card">
+        <p><b>半导体近一周仍是回撤状态。</b>012552、021532 近一周正式净值约 -10%，说明今天反弹不能直接等同于波动结束。</p>
+        <div class="event-meta">影响对象：半导体 | 时间：截至 2026-06-02 | 来源：天天基金净值 | 可信度：高 | 为什么看：决定今日只能慢分批，不能追急。</div>
+      </article>
+      <article class="event-card">
+        <p><b>黄金基金今日估值回落。</b>000218、002611 在 2026-06-03 收盘附近估值均约 -1.48%，短线仍在高位整理。</p>
+        <div class="event-meta">影响对象：黄金 | 时间：2026-06-03 15:30 | 来源：天天基金估值 | 可信度：中 | 为什么看：提示今日不适合新增大额黄金仓。</div>
+      </article>
+      <article class="event-card">
+        <p><b>黄金现货价格仍处高位。</b>公开市场数据 2026-06-02 显示黄金约 4539.50 美元/盎司，较前日回落，但年内仍为正收益。</p>
+        <div class="event-meta">影响对象：黄金 | 时间：2026-06-02 | 来源：Report.az 市场数据 | 可信度：中 | 为什么看：说明黄金是高位整理，不是趋势完全逆转。</div>
+      </article>
+      <article class="event-card">
+        <p><b>006533 需按主动混合理解。</b>其估值今日上涨约 +2.13%，但持仓来自主动权益配置，不能用半导体或黄金单一逻辑替代。</p>
+        <div class="event-meta">影响对象：主动混合 | 时间：2026-06-03 | 来源：天天基金产品与净值数据 | 可信度：中高 | 为什么看：避免把它误当行业工具基金。</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>当前已买基金信息一览</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>基金代码</th>
+            <th>基金名称</th>
+            <th>基金角色</th>
+            <th>近 1 日</th>
+            <th>近 1 周</th>
+            <th>近 1 月</th>
+            <th>短期判断</th>
+            <th>长期逻辑判断</th>
+            <th>支持依据</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>012552</td>
+            <td>天弘芯片产业ETF联接A</td>
+            <td>半导体核心宽基工具，覆盖芯片产业链。</td>
+            <td class="up">上涨 +1.53%<br><span class="mini">估值 +3.31%</span></td>
+            <td class="down">约 -10.19%</td>
+            <td class="up">+13.78%</td>
+            <td>强反弹与高波动并存，短线还没稳定。</td>
+            <td>AI 算力和国产替代逻辑未变。</td>
+            <td>月度仍强，但周度回撤深，说明波动率很高。</td>
+          </tr>
+          <tr>
+            <td>021532</td>
+            <td>天弘半导体设备指数A</td>
+            <td>半导体设备与先进制造弹性仓。</td>
+            <td class="up">上涨 +1.77%<br><span class="mini">估值 +2.59%</span></td>
+            <td class="down">约 -10.63%</td>
+            <td class="up">+15.41%</td>
+            <td>弹性高，今天不适合追涨。</td>
+            <td>国产设备替代和先进制造资本开支逻辑仍在。</td>
+            <td>近 1 月表现强于芯片宽基，但近 1 周回撤也更重。</td>
+          </tr>
+          <tr>
+            <td>006533</td>
+            <td>易方达科融混合</td>
+            <td>主动混合高波动成长仓，不是纯半导体或黄金基金。</td>
+            <td class="up">上涨 +3.98%<br><span class="mini">估值 +2.13%</span></td>
+            <td class="up">约 +1.58%</td>
+            <td class="up">+13.23%</td>
+            <td>近期弹性很高，短线不宜简单追涨。</td>
+            <td>取决于基金经理配置能力和持仓方向，需要持续核验。</td>
+            <td>表现强，但主动混合的来源不透明度高于指数基金。</td>
+          </tr>
+          <tr>
+            <td>000218</td>
+            <td>国泰黄金ETF联接A</td>
+            <td>黄金防守仓，适合平衡权益波动。</td>
+            <td class="up">上涨 +0.61%<br><span class="mini">估值 -1.48%</span></td>
+            <td class="down">约 -0.53%</td>
+            <td class="down">-2.64%</td>
+            <td>高位整理，短期承压。</td>
+            <td>央行购金、避险需求和利率不确定仍支撑配置价值。</td>
+            <td>短期走弱但长期支撑仍在，适合作为组合稳定器。</td>
+          </tr>
+          <tr>
+            <td>002611</td>
+            <td>博时黄金ETF联接C</td>
+            <td>黄金防守仓，C 类更偏短中期持有工具。</td>
+            <td class="up">上涨 +0.58%<br><span class="mini">估值 -1.48%</span></td>
+            <td class="down">约 -0.55%</td>
+            <td class="down">-2.67%</td>
+            <td>与黄金方向同步回落，暂不需要大动作。</td>
+            <td>黄金配置逻辑未变，但同类基金不宜重复堆太多。</td>
+            <td>近期表现与 000218 接近，核心是控制黄金仓位比例。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="note">
+    <h2>补充说明</h2>
+    <p><b>信息来源摘要：</b>基金名称、净值、估值和阶段表现主要来自天天基金；半导体长期需求参考 Gartner、Nasdaq 指数资料；黄金长期需求参考 World Gold Council；利率背景参考 FRED；黄金现货短线价格参考公开市场数据。</p>
+    <p><b>不确定性说明：</b>2026-06-03 的基金估值不是正式净值，最终以基金公司和销售平台确认净值为准。部分宏观数据存在发布时间滞后，因此本报告把它们用于判断中长期背景，而不是用于日内交易。</p>
+  </section>
+</main>
+</body>
+</html>
