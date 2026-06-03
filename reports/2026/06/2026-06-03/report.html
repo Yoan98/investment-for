@@ -74,12 +74,65 @@
     .event:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
     .action-box {
       margin-top: 14px;
-      padding: 14px;
+      padding: 16px;
       border: 2px solid rgba(166, 90, 0, 0.35);
       border-radius: 14px;
       background: #fff7df;
     }
-    .action-table { min-width: 980px; margin-top: 10px; }
+    .action-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .action-card {
+      display: grid;
+      grid-template-columns: minmax(180px, 0.85fr) minmax(0, 2.15fr);
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid #ead7a5;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    .fund-code {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(29, 39, 51, 0.08);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .fund-name {
+      margin: 0 0 8px;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .action-label {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 10px;
+      background: rgba(166, 90, 0, 0.13);
+      color: var(--warn);
+      font-weight: 800;
+    }
+    .action-detail {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .detail-block {
+      padding-left: 10px;
+      border-left: 3px solid rgba(166, 90, 0, 0.26);
+    }
+    .detail-title {
+      margin: 0 0 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
     .table-wrap { overflow-x: auto; }
     table {
       width: 100%;
@@ -99,6 +152,8 @@
     ul { padding-left: 18px; }
     @media (max-width: 800px) {
       .grid { grid-template-columns: 1fr; }
+      .action-card { grid-template-columns: 1fr; }
+      .action-detail { grid-template-columns: 1fr; }
       h1 { font-size: 24px; }
     }
   </style>
@@ -131,67 +186,116 @@
         <div class="action-box">
           <h2>今日操作建议</h2>
           <p><strong>结论：今天只适合“有计划的小额动作”，不适合大额追涨、集中换仓或处理数据不清的基金。</strong>下面按具体基金给出动作、原因和证据。</p>
-          <div class="table-wrap">
-            <table class="action-table">
-              <thead>
-                <tr>
-                  <th>基金代码</th>
-                  <th>基金名称</th>
-                  <th>今日建议</th>
-                  <th>操作方式</th>
-                  <th>原因</th>
-                  <th>证据</th>
-                  <th>触发 / 停止条件</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>012552</td>
-                  <td>天弘芯片产业ETF联接A</td>
-                  <td>谨慎小额加仓 / 按原定投</td>
-                  <td>如果本周本来就计划买半导体，今天可以只做一小笔；不建议一次性重仓。</td>
-                  <td>它是半导体核心仓，长期逻辑没坏；近 1 周回撤较大，说明有低吸空间，但波动还没稳定。</td>
-                  <td>近 1 年 `+99.65%`，近 1 月 `+13.78%`，近 1 周 `-10.19%`，2026-06-02 单日 `+1.53%`。</td>
-                  <td>能接受继续回撤再执行；若半导体仓位已偏高，今天停止加仓，只持有。</td>
-                </tr>
-                <tr>
-                  <td>021532</td>
-                  <td>天弘半导体设备指数A</td>
-                  <td>观察或更小金额试探</td>
-                  <td>若特别想补设备材料，只能小于 `012552` 的金额；否则今天先不动。</td>
-                  <td>设备材料弹性更高，国产替代逻辑强，但净值更新滞后，今天不能把它当成实时状态判断。</td>
-                  <td>最新可得净值截至 2026-05-29；近 1 年 `+129.76%`，近 1 月 `+23.31%`，近 1 周 `-5.21%`。</td>
-                  <td>等净值补更新后再加大动作；如果补更新后明显弱于半导体主链，停止加仓。</td>
-                </tr>
-                <tr>
-                  <td>000218</td>
-                  <td>国泰黄金ETF联接A</td>
-                  <td>持有，低仓位可小额补</td>
-                  <td>仓位正常就不动；若黄金明显低于计划比例，可以小额补一点防守仓。</td>
-                  <td>黄金短线高位整理，追涨性价比不高；但作为组合缓冲器，长期防守逻辑仍在。</td>
-                  <td>近 1 年 `+27.04%`，近 1 月 `-3.24%`，近 1 周 `-1.62%`；美国 10 年期国债收益率仍约 `4.47%`。</td>
-                  <td>只有黄金仓位低于计划时补；若美元和美债收益率继续走强，暂停新增。</td>
-                </tr>
-                <tr>
-                  <td>002611</td>
-                  <td>博时黄金ETF联接C</td>
-                  <td>持有，不主动加仓</td>
-                  <td>今天不需要新增；如果要补黄金，优先确认是否更适合用 A 类或原计划产品。</td>
-                  <td>走势与 `000218` 接近，但 C 类更适合机动持有，长期大额持有要考虑费用拖累。</td>
-                  <td>近 1 年 `+25.67%`，近 1 月 `-3.24%`，近 1 周 `-1.60%`，与 `000218` 基本同方向。</td>
-                  <td>短期机动仓可持有；若准备长期持有多年，先核对费用再决定是否继续加。</td>
-                </tr>
-                <tr>
-                  <td>006533</td>
-                  <td>易方达科融混合</td>
-                  <td>今天不操作，需要核验</td>
-                  <td>暂停新增、暂停减仓判断，先查最新净值、季报重仓和基金经理策略。</td>
-                  <td>它是主动混合基金，不是纯半导体或黄金基金；当前可得公开数据过旧，无法给出可靠当天动作。</td>
-                  <td>抓取到的公开页显示历史数据截至 2025-12-11，不能代表 2026-06-03 状态。</td>
-                  <td>拿到最新净值和重仓前不操作；若重仓方向已不匹配原配置目的，再考虑调整。</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="action-list">
+            <article class="action-card">
+              <div>
+                <span class="fund-code">012552</span>
+                <p class="fund-name">天弘芯片产业ETF联接A</p>
+                <span class="action-label">谨慎小额加仓 / 按原定投</span>
+              </div>
+              <div class="action-detail">
+                <div class="detail-block">
+                  <p class="detail-title">操作方式</p>
+                  <p>如果本周本来就计划买半导体，今天可以只做一小笔；不建议一次性重仓。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">原因与证据</p>
+                  <p>半导体核心仓，长期逻辑没坏；近 1 年 `+99.65%`，近 1 周 `-10.19%`，说明有低吸空间但波动还没稳定。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">触发 / 停止</p>
+                  <p>能接受继续回撤再执行；若半导体仓位已偏高，今天停止加仓，只持有。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="action-card">
+              <div>
+                <span class="fund-code">021532</span>
+                <p class="fund-name">天弘半导体设备指数A</p>
+                <span class="action-label">观察或更小金额试探</span>
+              </div>
+              <div class="action-detail">
+                <div class="detail-block">
+                  <p class="detail-title">操作方式</p>
+                  <p>若特别想补设备材料，只能小于 `012552` 的金额；否则今天先不动。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">原因与证据</p>
+                  <p>设备材料弹性更高，但净值更新滞后；最新可得净值截至 2026-05-29，近 1 年 `+129.76%`。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">触发 / 停止</p>
+                  <p>等净值补更新后再加大动作；若补更新后明显弱于半导体主链，停止加仓。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="action-card">
+              <div>
+                <span class="fund-code">000218</span>
+                <p class="fund-name">国泰黄金ETF联接A</p>
+                <span class="action-label">持有，低仓位可小额补</span>
+              </div>
+              <div class="action-detail">
+                <div class="detail-block">
+                  <p class="detail-title">操作方式</p>
+                  <p>仓位正常就不动；若黄金明显低于计划比例，可以小额补一点防守仓。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">原因与证据</p>
+                  <p>黄金短线高位整理但防守逻辑仍在；近 1 年 `+27.04%`，近 1 月 `-3.24%`。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">触发 / 停止</p>
+                  <p>只有黄金仓位低于计划时补；若美元和美债收益率继续走强，暂停新增。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="action-card">
+              <div>
+                <span class="fund-code">002611</span>
+                <p class="fund-name">博时黄金ETF联接C</p>
+                <span class="action-label">持有，不主动加仓</span>
+              </div>
+              <div class="action-detail">
+                <div class="detail-block">
+                  <p class="detail-title">操作方式</p>
+                  <p>今天不需要新增；如果要补黄金，优先确认是否更适合用 A 类或原计划产品。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">原因与证据</p>
+                  <p>走势与 `000218` 接近，但 C 类更适合机动持有；近 1 年 `+25.67%`，近 1 周 `-1.60%`。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">触发 / 停止</p>
+                  <p>短期机动仓可持有；若准备长期持有多年，先核对费用再决定是否继续加。</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="action-card">
+              <div>
+                <span class="fund-code">006533</span>
+                <p class="fund-name">易方达科融混合</p>
+                <span class="action-label">今天不操作，需要核验</span>
+              </div>
+              <div class="action-detail">
+                <div class="detail-block">
+                  <p class="detail-title">操作方式</p>
+                  <p>暂停新增、暂停减仓判断，先查最新净值、季报重仓和基金经理策略。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">原因与证据</p>
+                  <p>主动混合基金，不是纯半导体或黄金基金；公开页显示历史数据截至 2025-12-11。</p>
+                </div>
+                <div class="detail-block">
+                  <p class="detail-title">触发 / 停止</p>
+                  <p>拿到最新净值和重仓前不操作；若重仓方向已不匹配原配置目的，再考虑调整。</p>
+                </div>
+              </div>
+            </article>
           </div>
         </div>
       </div>
