@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2026-06-10 半导体与黄金基金最新报告</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --paper: #fffdf8;
+      --ink: #213036;
+      --muted: #65727a;
+      --line: #ddd4c6;
+      --ok: #1e6a39;
+      --warn: #9b6400;
+      --bad: #b13c2e;
+      --chip: #0d695d;
+      --gold: #a87519;
+      --shadow: 0 16px 42px rgba(59, 41, 21, 0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(13, 105, 93, 0.12), transparent 28rem),
+        radial-gradient(circle at top right, rgba(168, 117, 25, 0.12), transparent 30rem),
+        linear-gradient(180deg, #f7f2e9 0%, #f1e8da 100%);
+      font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+      line-height: 1.7;
+    }
+    main { width: min(1120px, calc(100% - 28px)); margin: 24px auto 52px; }
+    section {
+      background: rgba(255, 253, 248, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 22px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.12; margin-bottom: 12px; }
+    h2 { font-size: clamp(22px, 2.6vw, 30px); margin-bottom: 14px; }
+    .meta-row, .summary-grid, .actions, .event-grid { display: grid; gap: 14px; }
+    .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+    .meta-pill, .summary-card, .framework, .action-card, .event-card { border: 1px solid var(--line); border-radius: 20px; background: var(--paper); }
+    .meta-pill { padding: 10px 12px; color: var(--muted); font-size: 14px; }
+    .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
+    .summary-card { padding: 18px; }
+    .summary-card.chip { border-top: 5px solid var(--chip); }
+    .summary-card.gold { border-top: 5px solid var(--gold); }
+    .framework { padding: 18px; margin-top: 16px; background: linear-gradient(135deg, rgba(13, 105, 93, 0.06), rgba(168, 117, 25, 0.08)); }
+    .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
+    .action-card { padding: 18px; }
+    .card-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .badge { border-radius: 999px; padding: 4px 10px; color: white; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .badge.ok { background: var(--ok); }
+    .badge.warn { background: var(--warn); }
+    .badge.bad { background: var(--bad); }
+    .muted, .meta { color: var(--muted); font-size: 14px; }
+    .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .event-card { padding: 18px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; font-size: 14px; }
+    th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #efe6d8; }
+    tr:last-child td { border-bottom: 0; }
+    @media (max-width: 780px) {
+      .meta-row, .summary-grid, .actions, .event-grid { grid-template-columns: 1fr; }
+      main { width: min(100% - 18px, 1120px); margin-top: 12px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section>
+    <div class="meta-row">
+      <div class="meta-pill">报告日期：2026-06-10</div>
+      <div class="meta-pill">生成时间：2026-06-10 11:56:37 CST</div>
+      <div class="meta-pill">数据状态：ok 3 / cautious 0 / blocked 0</div>
+      <div class="meta-pill">产物位置：reports/latest</div>
+    </div>
+    <h1>当天判断已切到实时数据，今天可用，但节奏仍应偏慢。</h1>
+    <p class="muted">这份报告已经不再用几天前的旧净值充当天主判断。顶部结论来自盘中估值、半导体持仓篮子代理和黄金 ETF 代理，正式净值只保留为确认层。</p>
+    <div class="summary-grid">
+      <article class="summary-card chip">
+        <h2>半导体一句话总结</h2>
+        <p>半导体今天分化不大，核心宽基估值 -0.08%、设备仓估值 +2.99%，且两只基金的实时代理仍可校验，所以当前更适合按原计划慢速分批，而不是回到看几天前净值做判断；证据是 012552 的实时篮子代理 +0.69%、021532 的实时篮子代理 +3.09%。</p>
+      </article>
+      <article class="summary-card gold">
+        <h2>黄金一句话总结</h2>
+        <p>黄金今天实时估值 -3.48%，与底层黄金 ETF 代理 -3.60% 基本一致，所以当前仍应把黄金理解成防守仓，不适合因为单次下挫就激进补仓；证据是 000218 盘中估值与黄金ETF国泰代理方向一致，且都满足新鲜度门槛。</p>
+      </article>
+    </div>
+    <div class="framework">
+      <h2>今日判断框架</h2>
+      <p><b>结论：</b>今天可以输出保守的当天节奏判断</p>
+      <p><b>解释：</b>三只基金都同时具备盘中估值和实时代理，说明当天主判断已经不再依赖旧净值。整体态度仍是长期逻辑不变、节奏偏慢、允许小额但不允许冲动放大单笔。</p>
+      <p><b>提醒：</b>半导体两只基金的代理数据来自前十大持仓等权实时篮子，黄金代理来自黄金ETF国泰；它们是当天判断的校验层，不是正式净值本身。</p>
+    </div>
+    <h2 style="margin-top:18px;">今日操作建议</h2>
+    <div class="actions">
+        <article class="action-card">
+          <div class="card-head">
+            <strong>012552 天弘芯片产业ETF联接A</strong>
+            <span class="badge ok">可操作</span>
+          </div>
+          <p><b>建议：</b>按原计划小额分批</p>
+          <p><b>节奏：</b>不放大单笔，不把盘中轻微波动当趋势确认。</p>
+          <p><b>原因：</b>盘中估算与底层实时代理都满足新鲜度门槛。</p>
+          <p class="muted"><b>证据：</b>估值 -0.08%，时间 2026-06-10 11:30；代理 +0.69%，时间 2026-06-10 11:56:34。</p>
+        </article>
+      
+        <article class="action-card">
+          <div class="card-head">
+            <strong>021532 天弘半导体设备指数A</strong>
+            <span class="badge ok">可操作</span>
+          </div>
+          <p><b>建议：</b>可小额靠近，但比核心仓更慢</p>
+          <p><b>节奏：</b>设备链弹性高，允许跟随趋势，但不能追情绪尖峰。</p>
+          <p><b>原因：</b>盘中估算与底层实时代理都满足新鲜度门槛。</p>
+          <p class="muted"><b>证据：</b>估值 +2.99%，时间 2026-06-10 11:30；代理 +3.09%，时间 2026-06-10 11:56:32。</p>
+        </article>
+      
+        <article class="action-card">
+          <div class="card-head">
+            <strong>000218 国泰黄金ETF联接A</strong>
+            <span class="badge ok">可操作</span>
+          </div>
+          <p><b>建议：</b>只保留防守仓，不主动追补</p>
+          <p><b>节奏：</b>黄金更多承担组合对冲，不承担追涨任务。</p>
+          <p><b>原因：</b>盘中估算与底层实时代理都满足新鲜度门槛。</p>
+          <p class="muted"><b>证据：</b>估值 -3.48%，时间 2026-06-10 11:56；代理 -3.60%，时间 2026-06-10 11:56:37。</p>
+        </article>
+      </div>
+  </section>
+
+  <section>
+    <h2>信息事件层</h2>
+    <h3>长期信息总结</h3>
+    <div class="event-grid">
+      <article class="event-card">
+        <p><strong>AI 算力、先进存储和国产替代仍是半导体长期主线。</strong></p>
+        <p class="meta">影响对象：半导体｜时间：2026-06-02｜来源：WSTS｜可信度：高</p>
+        <p><b>事实：</b>行业协会在 2026-06-02 的春季更新里继续维持半导体高景气判断。</p>
+        <p><b>推断：</b>这意味着半导体的长期方向仍成立，当天判断应更多取决于节奏和新鲜数据，而不是怀疑主逻辑。</p>
+      </article>
+    
+      <article class="event-card">
+        <p><strong>半导体设备链仍会受出口限制和国产替代双重驱动。</strong></p>
+        <p class="meta">影响对象：半导体设备｜时间：2026-05-31｜来源：BIS｜可信度：高</p>
+        <p><b>事实：</b>美国商务部在 2026-05-31 延续先进计算相关出口合规边界。</p>
+        <p><b>推断：</b>设备链的高弹性和高波动会长期并存，因此 021532 的动作节奏必须慢于情绪波动。</p>
+      </article>
+    
+      <article class="event-card">
+        <p><strong>黄金长期仍受央行购金和储备需求支撑。</strong></p>
+        <p class="meta">影响对象：黄金｜时间：2026-04-30 / 2026-06-07｜来源：World Gold Council / SAFE｜可信度：高</p>
+        <p><b>事实：</b>世界黄金协会 Q1 2026 报告和中国 2026-06-07 储备数据都说明黄金仍具长期配置需求。</p>
+        <p><b>推断：</b>黄金作为防守仓的长期定位没有改变，但当天节奏仍应以实时数据和利率环境约束为准。</p>
+      </article>
+    </div>
+    <h3 style="margin-top:20px;">近期信息一览</h3>
+    <div class="event-grid">
+      <article class="event-card">
+        <p><strong>012552 盘中估值已能和实时持仓篮子交叉校验。</strong></p>
+        <p class="meta">影响对象：半导体｜时间：2026-06-10 11:30｜来源：天天基金估值接口 / 东财实时行情接口｜可信度：中高</p>
+        <p><b>事实：</b>012552 盘中估值 -0.08%，实时篮子代理 +0.69%。</p>
+        <p><b>为什么值得看：</b>这说明核心宽基仓今天的判断不再依赖过时页面净值，可以按当天节奏看待。</p>
+      </article>
+    
+      <article class="event-card">
+        <p><strong>021532 的设备链实时代理与估值方向一致。</strong></p>
+        <p class="meta">影响对象：半导体设备｜时间：2026-06-10 11:30｜来源：天天基金估值接口 / 东财实时行情接口｜可信度：中高</p>
+        <p><b>事实：</b>021532 盘中估值 +2.99%，实时篮子代理 +3.09%。</p>
+        <p><b>为什么值得看：</b>设备方向弹性高，但今天的实时代理和估值没有打架，说明可以保守参考当天方向。</p>
+      </article>
+    
+      <article class="event-card">
+        <p><strong>000218 的黄金估值和底层黄金 ETF 基本同步。</strong></p>
+        <p class="meta">影响对象：黄金｜时间：2026-06-10 11:56｜来源：天天基金估值接口 / 东财实时行情接口｜可信度：中高</p>
+        <p><b>事实：</b>000218 盘中估值 -3.48%，黄金ETF国泰代理 -3.60%。</p>
+        <p><b>为什么值得看：</b>这意味着黄金的当天弱势是真实存在的，不应再用旧净值误判为已经企稳。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>当前已买基金信息一览</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>基金代码</th>
+            <th>基金名称</th>
+            <th>基金角色</th>
+            <th>当天决策数据</th>
+            <th>决策数据时间</th>
+            <th>是否新鲜</th>
+            <th>最新正式净值</th>
+            <th>近 1 日</th>
+            <th>短期判断</th>
+            <th>长期逻辑判断</th>
+            <th>支持依据</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr>
+        <td>012552</td>
+        <td>天弘芯片产业ETF联接A</td>
+        <td>半导体核心配置</td>
+        <td>下跌 -0.08%</td>
+        <td>2026-06-10 11:30</td>
+        <td>是</td>
+        <td>1.5567 / 2026-06-09</td>
+        <td>上涨 +4.84%</td>
+        <td>当天数据可直接参考</td>
+        <td>长期逻辑未改，仍按 半导体核心配置 看待。</td>
+        <td>实时代理类型：basket_proxy；代理涨跌 +0.69%。</td>
+      </tr>
+    
+      <tr>
+        <td>021532</td>
+        <td>天弘半导体设备指数A</td>
+        <td>半导体设备弹性仓</td>
+        <td>上涨 +2.99%</td>
+        <td>2026-06-10 11:30</td>
+        <td>是</td>
+        <td>2.8711 / 2026-06-09</td>
+        <td>上涨 +7.54%</td>
+        <td>当天数据可直接参考</td>
+        <td>长期逻辑未改，仍按 半导体设备弹性仓 看待。</td>
+        <td>实时代理类型：basket_proxy；代理涨跌 +3.09%。</td>
+      </tr>
+    
+      <tr>
+        <td>000218</td>
+        <td>国泰黄金ETF联接A</td>
+        <td>黄金防守仓</td>
+        <td>下跌 -3.48%</td>
+        <td>2026-06-10 11:56</td>
+        <td>是</td>
+        <td>3.4164 / 2026-06-09</td>
+        <td>上涨 +0.39%</td>
+        <td>当天数据可直接参考</td>
+        <td>长期逻辑未改，仍按 黄金防守仓 看待。</td>
+        <td>实时代理类型：single_quote_proxy；代理涨跌 -3.60%。</td>
+      </tr>
+    </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>补充说明</h2>
+    <p><b>信息来源摘要：</b>当天主判断来自天天基金估值接口与东财实时行情接口；正式确认层来自东方财富历史净值接口；长期背景层使用已复核的 WSTS、BIS、World Gold Council 与 SAFE 公开来源。</p>
+    <p><b>不确定性说明：</b>半导体两只基金的代理并非基金官方实时净值，而是前十大持仓等权实时篮子，因此它更适合做当天方向校验，不适合替代正式净值做长期收益统计。黄金代理使用黄金 ETF 实时行情，适合判断当天方向，但同样不替代基金收盘确认值。</p>
+  </section>
+</main>
+</body>
+</html>

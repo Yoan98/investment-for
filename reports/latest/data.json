@@ -1,0 +1,381 @@
+{
+  "report_date": "2026-06-10",
+  "timezone": "Asia/Shanghai",
+  "generated_at": "2026-06-10T03:56:37.995Z",
+  "funds": [
+    {
+      "code": "012552",
+      "name": "天弘芯片产业ETF联接A",
+      "role": "半导体核心配置",
+      "decision_feed": {
+        "type": "intraday_estimate",
+        "value": 1.5555,
+        "change_pct": -0.08,
+        "previous_nav": 1.5567,
+        "previous_nav_date": "2026-06-09",
+        "data_time": "2026-06-10 11:30",
+        "fetch_time": "2026-06-10T03:56:37.758Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "天天基金估值接口",
+        "source_url": "https://fundgz.1234567.com.cn/js/012552.js"
+      },
+      "decision_status": "ok",
+      "decision_reason": "盘中估算与底层实时代理都满足新鲜度门槛。",
+      "intraday_estimate": {
+        "type": "intraday_estimate",
+        "value": 1.5555,
+        "change_pct": -0.08,
+        "previous_nav": 1.5567,
+        "previous_nav_date": "2026-06-09",
+        "data_time": "2026-06-10 11:30",
+        "fetch_time": "2026-06-10T03:56:37.758Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "天天基金估值接口",
+        "source_url": "https://fundgz.1234567.com.cn/js/012552.js"
+      },
+      "official_nav": {
+        "nav": 1.5567,
+        "accumulative_nav": 1.5567,
+        "nav_date": "2026-06-09",
+        "daily_change_pct": 4.84,
+        "source_name": "东方财富历史净值接口",
+        "source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=012552&pageIndex=1&pageSize=20"
+      },
+      "underlying_realtime": {
+        "type": "basket_proxy",
+        "label": "前十大持仓等权实时篮子",
+        "data_time": "2026-06-10T03:56:34.000Z",
+        "fetch_time": "2026-06-10T03:56:37.786Z",
+        "freshness_minutes": 0,
+        "component_count": 10,
+        "usable_component_count": 10,
+        "composition_method": "equal_weight_top_holdings_proxy",
+        "change_pct": 0.69,
+        "usable_for_today_decision": true,
+        "source_name": "东财实时行情接口",
+        "source_url": "multiple eastmoney quote endpoints",
+        "components": [
+          {
+            "secid": "1.688041",
+            "code": "688041",
+            "label": "海光信息",
+            "price": 286.57,
+            "change_amount": 18.39,
+            "change_pct": 6.86,
+            "data_time": "2026-06-10T03:56:12.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688041&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "0.002371",
+            "code": "002371",
+            "label": "北方华创",
+            "price": 621.29,
+            "change_amount": 4.19,
+            "change_pct": 0.68,
+            "data_time": "2026-06-10T03:56:03.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.002371&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688981",
+            "code": "688981",
+            "label": "中芯国际",
+            "price": 126.81,
+            "change_amount": -0.49,
+            "change_pct": -0.38,
+            "data_time": "2026-06-10T03:56:18.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688981&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688256",
+            "code": "688256",
+            "label": "寒武纪",
+            "price": 1259.27,
+            "change_amount": -10.74,
+            "change_pct": -0.85,
+            "data_time": "2026-06-10T03:56:28.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688256&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.603986",
+            "code": "603986",
+            "label": "兆易创新",
+            "price": 482.84,
+            "change_amount": -17.66,
+            "change_pct": -3.53,
+            "data_time": "2026-06-10T03:56:29.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.603986&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688008",
+            "code": "688008",
+            "label": "澜起科技",
+            "price": 232.25,
+            "change_amount": -4.15,
+            "change_pct": -1.76,
+            "data_time": "2026-06-10T03:56:28.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688008&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688012",
+            "code": "688012",
+            "label": "中微公司",
+            "price": 293,
+            "change_amount": 7.96,
+            "change_pct": 2.79,
+            "data_time": "2026-06-10T03:56:11.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688012&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.603501",
+            "code": "603501",
+            "label": "豪威集团",
+            "price": 90.42,
+            "change_amount": -2.9,
+            "change_pct": -3.11,
+            "data_time": "2026-06-10T03:56:34.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.603501&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688521",
+            "code": "688521",
+            "label": "芯原股份",
+            "price": 229.68,
+            "change_amount": 2.16,
+            "change_pct": 0.95,
+            "data_time": "2026-06-10T03:56:20.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688521&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688525",
+            "code": "688525",
+            "label": "佰维存储",
+            "price": 321.09,
+            "change_amount": 15.94,
+            "change_pct": 5.22,
+            "data_time": "2026-06-10T03:56:12.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688525&fields=f43,f57,f58,f86,f124,f169,f170"
+          }
+        ]
+      }
+    },
+    {
+      "code": "021532",
+      "name": "天弘半导体设备指数A",
+      "role": "半导体设备弹性仓",
+      "decision_feed": {
+        "type": "intraday_estimate",
+        "value": 2.9569,
+        "change_pct": 2.99,
+        "previous_nav": 2.8711,
+        "previous_nav_date": "2026-06-09",
+        "data_time": "2026-06-10 11:30",
+        "fetch_time": "2026-06-10T03:56:37.791Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "天天基金估值接口",
+        "source_url": "https://fundgz.1234567.com.cn/js/021532.js"
+      },
+      "decision_status": "ok",
+      "decision_reason": "盘中估算与底层实时代理都满足新鲜度门槛。",
+      "intraday_estimate": {
+        "type": "intraday_estimate",
+        "value": 2.9569,
+        "change_pct": 2.99,
+        "previous_nav": 2.8711,
+        "previous_nav_date": "2026-06-09",
+        "data_time": "2026-06-10 11:30",
+        "fetch_time": "2026-06-10T03:56:37.791Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "天天基金估值接口",
+        "source_url": "https://fundgz.1234567.com.cn/js/021532.js"
+      },
+      "official_nav": {
+        "nav": 2.8711,
+        "accumulative_nav": 2.8711,
+        "nav_date": "2026-06-09",
+        "daily_change_pct": 7.54,
+        "source_name": "东方财富历史净值接口",
+        "source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=021532&pageIndex=1&pageSize=20"
+      },
+      "underlying_realtime": {
+        "type": "basket_proxy",
+        "label": "前十大设备持仓等权实时篮子",
+        "data_time": "2026-06-10T03:56:32.000Z",
+        "fetch_time": "2026-06-10T03:56:37.791Z",
+        "freshness_minutes": 0,
+        "component_count": 10,
+        "usable_component_count": 10,
+        "composition_method": "equal_weight_top_holdings_proxy",
+        "change_pct": 3.09,
+        "usable_for_today_decision": true,
+        "source_name": "东财实时行情接口",
+        "source_url": "multiple eastmoney quote endpoints",
+        "components": [
+          {
+            "secid": "1.688012",
+            "code": "688012",
+            "label": "中微公司",
+            "price": 293,
+            "change_amount": 7.96,
+            "change_pct": 2.79,
+            "data_time": "2026-06-10T03:56:11.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688012&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "0.002371",
+            "code": "002371",
+            "label": "北方华创",
+            "price": 621.29,
+            "change_amount": 4.19,
+            "change_pct": 0.68,
+            "data_time": "2026-06-10T03:56:03.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.002371&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688072",
+            "code": "688072",
+            "label": "拓荆科技",
+            "price": 623.96,
+            "change_amount": 26.96,
+            "change_pct": 4.52,
+            "data_time": "2026-06-10T03:56:16.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688072&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "0.300604",
+            "code": "300604",
+            "label": "长川科技",
+            "price": 230.56,
+            "change_amount": 17.83,
+            "change_pct": 8.38,
+            "data_time": "2026-06-10T03:55:48.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.300604&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688120",
+            "code": "688120",
+            "label": "DR华海清",
+            "price": 183.83,
+            "change_amount": 1.69,
+            "change_pct": 0.93,
+            "data_time": "2026-06-10T03:56:18.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688120&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688126",
+            "code": "688126",
+            "label": "沪硅产业",
+            "price": 32.95,
+            "change_amount": 1.22,
+            "change_pct": 3.84,
+            "data_time": "2026-06-10T03:56:32.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688126&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688361",
+            "code": "688361",
+            "label": "中科飞测",
+            "price": 206.68,
+            "change_amount": 3.6,
+            "change_pct": 1.77,
+            "data_time": "2026-06-10T03:56:13.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688361&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "0.300346",
+            "code": "300346",
+            "label": "南大光电",
+            "price": 62.4,
+            "change_amount": -0.31,
+            "change_pct": -0.49,
+            "data_time": "2026-06-10T03:55:54.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.300346&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "1.688019",
+            "code": "688019",
+            "label": "DR安集科",
+            "price": 220,
+            "change_amount": 5.57,
+            "change_pct": 2.6,
+            "data_time": "2026-06-10T03:56:28.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.688019&fields=f43,f57,f58,f86,f124,f169,f170"
+          },
+          {
+            "secid": "0.300666",
+            "code": "300666",
+            "label": "江丰电子",
+            "price": 238.19,
+            "change_amount": 13.31,
+            "change_pct": 5.92,
+            "data_time": "2026-06-10T03:56:00.000Z",
+            "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=0.300666&fields=f43,f57,f58,f86,f124,f169,f170"
+          }
+        ]
+      }
+    },
+    {
+      "code": "000218",
+      "name": "国泰黄金ETF联接A",
+      "role": "黄金防守仓",
+      "decision_feed": {
+        "type": "intraday_estimate",
+        "value": 3.2976,
+        "change_pct": -3.48,
+        "previous_nav": 3.4164,
+        "previous_nav_date": "2026-06-09",
+        "data_time": "2026-06-10 11:56",
+        "fetch_time": "2026-06-10T03:56:37.792Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "天天基金估值接口",
+        "source_url": "https://fundgz.1234567.com.cn/js/000218.js"
+      },
+      "decision_status": "ok",
+      "decision_reason": "盘中估算与底层实时代理都满足新鲜度门槛。",
+      "intraday_estimate": {
+        "type": "intraday_estimate",
+        "value": 3.2976,
+        "change_pct": -3.48,
+        "previous_nav": 3.4164,
+        "previous_nav_date": "2026-06-09",
+        "data_time": "2026-06-10 11:56",
+        "fetch_time": "2026-06-10T03:56:37.792Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "天天基金估值接口",
+        "source_url": "https://fundgz.1234567.com.cn/js/000218.js"
+      },
+      "official_nav": {
+        "nav": 3.4164,
+        "accumulative_nav": 3.4164,
+        "nav_date": "2026-06-09",
+        "daily_change_pct": 0.39,
+        "source_name": "东方财富历史净值接口",
+        "source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=000218&pageIndex=1&pageSize=20"
+      },
+      "underlying_realtime": {
+        "label": "黄金ETF国泰",
+        "price": 91,
+        "change_amount": -3.4,
+        "change_pct": -3.6,
+        "data_time": "2026-06-10T03:56:37.000Z",
+        "code": "518800",
+        "type": "single_quote_proxy",
+        "fetch_time": "2026-06-10T03:56:37.793Z",
+        "freshness_minutes": 0,
+        "usable_for_today_decision": true,
+        "source_name": "东财实时行情接口",
+        "source_url": "https://push2.eastmoney.com/api/qt/stock/get?secid=1.518800&fields=f43,f57,f58,f86,f124,f169,f170"
+      }
+    }
+  ],
+  "stats": {
+    "ok_count": 3,
+    "cautious_count": 0,
+    "blocked_count": 0
+  }
+}
