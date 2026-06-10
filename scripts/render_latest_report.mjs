@@ -59,6 +59,14 @@ function formatPercent(value) {
   return `${sign}${parsed.toFixed(2)}%`;
 }
 
+function formatFreshness(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return "未知";
+  if (parsed <= 0) return "<1 分钟";
+  if (Number.isInteger(parsed)) return `${parsed} 分钟`;
+  return `${parsed.toFixed(1)} 分钟`;
+}
+
 function changeWord(value) {
   const parsed = toNumber(value);
   if (parsed === null) return "未知";
@@ -424,7 +432,7 @@ function sourcesMarkdown(data) {
 - 用途：${fund.code} ${fund.name} 的盘中估值。
 - 数据时间：${fund.intraday_estimate?.data_time ?? "未知"}
 - 抓取时间：${toChinaString(fund.intraday_estimate?.fetch_time)}
-- 新鲜度：${fund.intraday_estimate?.freshness_minutes ?? "未知"} 个有效交易分钟
+- 新鲜度：${formatFreshness(fund.intraday_estimate?.freshness_minutes)}（有效交易时间）
 - 是否可用于当天判断：${fund.intraday_estimate?.usable_for_today_decision ? "是" : "否"}
 - 可信度备注：销售平台估值，适合做当天节奏判断，不替代正式净值。`);
 
@@ -433,7 +441,7 @@ function sourcesMarkdown(data) {
 - 用途：${fund.code} ${fund.name} 的实时代理校验。
 - 数据时间：${toChinaString(fund.underlying_realtime?.data_time)}
 - 抓取时间：${toChinaString(fund.underlying_realtime?.fetch_time)}
-- 新鲜度：${fund.underlying_realtime?.freshness_minutes ?? "未知"} 个有效交易分钟
+- 新鲜度：${formatFreshness(fund.underlying_realtime?.freshness_minutes)}（有效交易时间）
 - 是否可用于当天判断：${fund.underlying_realtime?.usable_for_today_decision ? "是" : "否"}
 - 可信度备注：代理数据用于交叉验证当天方向；半导体使用前十大持仓等权篮子，黄金使用底层黄金 ETF。`);
       return blocks;
