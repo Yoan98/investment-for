@@ -106,7 +106,7 @@ function toChinaString(isoString) {
 
 function formatDecisionTime(value) {
   if (!value) return "未知";
-  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(value)) return value;
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) return value;
   return toChinaString(value);
 }
 
@@ -189,17 +189,22 @@ function buildDecisionLevel(funds) {
 
 function buildFreshnessSnapshot(funds) {
   const feeds = usableDecisionFeeds(funds);
+  const completeFunds = funds.filter(
+    (fund) =>
+      fund.intraday_estimate?.usable_for_today_decision &&
+      fund.underlying_realtime?.usable_for_today_decision
+  ).length;
+  const confidence = Math.round((completeFunds / Math.max(funds.length, 1)) * 100);
+
   if (feeds.length === 0) {
     return {
-      time_range: "无可用实时判断数据",
-      freshness_status: "无新鲜实时数据",
+      confidence,
+      coverage: `${completeFunds}/${funds.length} 基金实时决策链路完整`,
+      freshness_status: "无可用实时数据",
+      fetch_label: "仅可参考正式净值复核",
     };
   }
 
-  const times = feeds
-    .map((feed) => feed.data_time)
-    .filter(Boolean)
-    .sort();
   const freshnessValues = feeds
     .map((feed) => toNumber(feed.freshness_minutes))
     .filter((value) => value !== null);
@@ -207,14 +212,11 @@ function buildFreshnessSnapshot(funds) {
     freshnessValues.length > 0 ? Math.max(...freshnessValues) : null;
 
   return {
-    time_range:
-      times.length > 0
-        ? `${formatDecisionTime(times[0])} 至 ${formatDecisionTime(times.at(-1))}`
-        : "可用实时数据缺少时间戳",
+    confidence,
+    coverage: `${completeFunds}/${funds.length} 基金实时决策链路完整`,
     freshness_status:
-      maxFreshness === null
-        ? "可用实时数据缺少新鲜度"
-        : `可用实时判断最大新鲜度 ${formatFreshness(maxFreshness)}`,
+      maxFreshness === null ? "实时数据时间戳缺失" : `最旧实时数据 ${formatFreshness(maxFreshness)}`,
+    fetch_label: "盘中判断数据已同步到本次抓取时点",
   };
 }
 
@@ -244,112 +246,230 @@ function decisionAction(fund, decisionLevel) {
   };
 }
 
+function buildTopConclusion(funds, decisionLevel) {
+  if (decisionLevel.level === "C") {
+    return {
+      headline: "今天只看复核，不给动作建议",
+      subhead: "实时判断链路不完整，今天不拿盘中波动做动作依据，只保留正式净值复核和长期逻辑。",
+      boundary: "今天暂停动作判断，等下一次实时链路恢复后再决定是否调整节奏。",
+    };
+  }
+
+  const gold = funds.find((item) => item.code === "000218");
+  const equip = funds.find((item) => item.code === "021532");
+  const semisAction =
+    decisionLevel.level === "A" ? "半导体继续小额分批" : "半导体只做保守靠近";
+  const goldAction =
+    gold?.decision_status === "ok"
+      ? "黄金维持防守仓，不主动追补"
+      : "黄金只保留防守仓判断";
+
+  return {
+    headline: `${semisAction}，${goldAction}`,
+    subhead:
+      decisionLevel.level === "A"
+        ? `设备链弹性仍强于核心仓，但不适合追尖峰；黄金弱势已经被联接基金估值和底层 ETF 代理同时确认。`
+        : `今天能看到部分实时方向，但信息还不够完整，因此只做慢节奏、小幅度的动作判断。`,
+    boundary:
+      equip?.decision_status === "ok"
+        ? "今天可以给到具体基金建议，但只适合小额、分批、不追涨。"
+        : "今天的建议只适合作为仓位节奏参考，不适合放大成明确的进攻动作。",
+  };
+}
+
 function buildSemiconductorSummary(funds, decisionLevel) {
   const chipCore = funds.find((item) => item.code === "012552");
   const chipEquip = funds.find((item) => item.code === "021532");
-  const usableCount = [chipCore, chipEquip].filter(
-    (fund) =>
-      fund?.intraday_estimate?.usable_for_today_decision &&
-      fund?.underlying_realtime?.usable_for_today_decision
-  ).length;
 
-  if (usableCount === 0) {
-    return "半导体今天缺少可核验的新鲜实时数据，因此不能根据当天盘中波动给节奏建议，只能继续用长期逻辑和正式净值复核。";
+  if (
+    !chipCore?.intraday_estimate?.usable_for_today_decision ||
+    !chipEquip?.intraday_estimate?.usable_for_today_decision
+  ) {
+    return "半导体今天只保留长期逻辑，不扩大动作；当前实时判断链路还不足以支持更激进的节奏判断。";
   }
 
-  const suffix =
-    decisionLevel.level === "A"
-      ? "因此当前更适合按原计划慢速分批，而不是回到看几天前净值做判断。"
-      : "但成套实时校验还不完整，因此最多只能按原计划小额观察，不能放大动作。";
+  const corePct = chipCore?.intraday_estimate?.change_pct;
+  const equipPct = chipEquip?.intraday_estimate?.change_pct;
+  const proxyCore = chipCore?.underlying_realtime?.change_pct;
+  const proxyEquip = chipEquip?.underlying_realtime?.change_pct;
 
-  return `半导体当前可见核心宽基估值 ${formatPercent(
-    chipCore?.intraday_estimate?.change_pct
-  )}、设备仓估值 ${formatPercent(
-    chipEquip?.intraday_estimate?.change_pct
-  )}，012552 实时篮子代理 ${formatPercent(
-    chipCore?.underlying_realtime?.change_pct
-  )}、021532 实时篮子代理 ${formatPercent(
-    chipEquip?.underlying_realtime?.change_pct
-  )}；${suffix}`;
+  if (toNumber(corePct) < 0 && toNumber(equipPct) > 0) {
+    return `核心宽基估值 ${formatPercent(corePct)}、设备仓估值 ${formatPercent(
+      equipPct
+    )}，说明半导体内部仍在分化；核心仓更适合按计划慢慢买，设备仓可以参考强势，但不能追高。代理对照分别是 ${formatPercent(
+      proxyCore
+    )} 和 ${formatPercent(proxyEquip)}。`;
+  }
+
+  if (toNumber(corePct) > 0 && toNumber(equipPct) > 0) {
+    return `两只半导体基金盘中都偏强，核心宽基 ${formatPercent(
+      corePct
+    )}、设备仓 ${formatPercent(
+      equipPct
+    )}；这类上涨更适合延续小额分批，不适合突然放大单笔。代理对照分别是 ${formatPercent(
+      proxyCore
+    )} 和 ${formatPercent(proxyEquip)}。`;
+  }
+
+  return `两只半导体基金盘中都不算强，核心宽基 ${formatPercent(
+    corePct
+  )}、设备仓 ${formatPercent(
+    equipPct
+  )}；今天更应该看成节奏管理，而不是方向反转。代理对照分别是 ${formatPercent(
+    proxyCore
+  )} 和 ${formatPercent(proxyEquip)}。`;
 }
 
-function buildGoldSummary(funds, decisionLevel) {
+function buildGoldSummary(funds) {
   const gold = funds.find((item) => item.code === "000218");
-  const estimateUsable = gold?.intraday_estimate?.usable_for_today_decision;
-  const proxyUsable = gold?.underlying_realtime?.usable_for_today_decision;
 
-  if (!estimateUsable && !proxyUsable) {
-    return "黄金今天缺少可核验的新鲜实时数据，因此只能继续把它当防守仓看待，不能根据当天盘中表现做加减仓判断。";
+  if (!gold?.intraday_estimate?.usable_for_today_decision) {
+    return "黄金今天只保留防守仓定位，不根据盘中走势做动作判断。";
   }
 
-  const suffix =
-    decisionLevel.level === "A"
-      ? "所以当前仍应把黄金理解成防守仓，不适合因为单次波动就激进补仓。"
-      : "但实时校验并不完整，所以今天只适合维持防守仓思路，不适合放大动作。";
+  const estimatePct = gold?.intraday_estimate?.change_pct;
+  const proxyPct = gold?.underlying_realtime?.change_pct;
 
-  return `黄金当前盘中估值 ${formatPercent(
-    gold?.intraday_estimate?.change_pct
-  )}，底层黄金 ETF 代理 ${formatPercent(
-    gold?.underlying_realtime?.change_pct
-  )}；${suffix}`;
+  if (toNumber(estimatePct) < 0 && toNumber(proxyPct) < 0) {
+    return `黄金盘中估值 ${formatPercent(
+      estimatePct
+    )}，ETF 代理 ${formatPercent(
+      proxyPct
+    )}，弱势是被确认过的；所以今天更像防守仓承压，不适合因为一次下跌就激进补仓。`;
+  }
+
+  if (toNumber(estimatePct) > 0 && toNumber(proxyPct) > 0) {
+    return `黄金盘中估值 ${formatPercent(
+      estimatePct
+    )}，ETF 代理 ${formatPercent(
+      proxyPct
+    )}，说明有修复，但它在组合里仍然只是防守仓，不承担进攻任务。`;
+  }
+
+  return `黄金盘中估值 ${formatPercent(
+    estimatePct
+  )}，ETF 代理 ${formatPercent(
+    proxyPct
+  )}，方向不算特别干净；今天保持防守仓思路，比判断短线拐点更重要。`;
 }
 
-function buildEventItems(funds) {
+function buildFundReason(fund, decisionLevel) {
+  if (decisionLevel.level === "C") {
+    return "今天不拿这只基金做动作判断，先等实时链路恢复完整。";
+  }
+
+  const estimatePct = toNumber(fund?.intraday_estimate?.change_pct);
+  const proxyPct = toNumber(fund?.underlying_realtime?.change_pct);
+
+  if (fund.code === "012552") {
+    if (estimatePct !== null && proxyPct !== null && estimatePct <= 0 && proxyPct <= 0) {
+      return "核心半导体确实回落，但回落幅度还像正常震荡，不像趋势转弱，继续按计划小额分批更合适。";
+    }
+    if (estimatePct !== null && proxyPct !== null && estimatePct > 0 && proxyPct > 0) {
+      return "核心半导体同步走强，但这类上涨更适合延续计划内买入，不适合突然放大单笔。";
+    }
+    return "核心半导体方向有波动，慢一点比猜短线拐点更重要。";
+  }
+
+  if (fund.code === "021532") {
+    if (estimatePct !== null && proxyPct !== null && estimatePct > 0 && proxyPct > 0) {
+      return "设备链弹性明显更强，但强势板块也最容易放大利润回吐，所以只能比核心仓更慢地靠近。";
+    }
+    if (estimatePct !== null && proxyPct !== null && estimatePct <= 0 && proxyPct <= 0) {
+      return "设备链一旦转弱，波动通常比核心宽基更大，因此今天更适合观察或极小额试探。";
+    }
+    return "设备链方向不够干净，保守一点比追当日情绪更重要。";
+  }
+
+  if (estimatePct !== null && proxyPct !== null && estimatePct < 0 && proxyPct < 0) {
+    return "黄金弱势被联接基金估值和 ETF 代理同时确认，今天更适合把它当防守仓承压，而不是抄底仓。";
+  }
+  if (estimatePct !== null && proxyPct !== null && estimatePct > 0 && proxyPct > 0) {
+    return "黄金有修复，但它在组合里的任务仍然是防守，不需要因为修复就主动追补。";
+  }
+  return "黄金方向还不够干净，只保留防守仓思路更稳妥。";
+}
+
+function buildFundEvidence(fund) {
+  const estimateTime = formatDecisionTime(fund?.intraday_estimate?.data_time);
+  const proxyTime = formatDecisionTime(fund?.underlying_realtime?.data_time);
+
+  if (!fund?.decision_feed?.usable_for_today_decision) {
+    return `这轮实时判断链路不完整；估值时间 ${estimateTime}，代理时间 ${proxyTime}。`;
+  }
+
+  return `估值 ${formatPercent(
+    fund?.intraday_estimate?.change_pct
+  )}（${estimateTime}），代理 ${formatPercent(
+    fund?.underlying_realtime?.change_pct
+  )}（${proxyTime}）。`;
+}
+
+function buildTodayViewItems(funds) {
   const core = funds.find((item) => item.code === "012552");
   const equip = funds.find((item) => item.code === "021532");
   const gold = funds.find((item) => item.code === "000218");
 
-  function buildRecentItem(fund, impact, successTitle, blockedTitle, successWhy, blockedWhy) {
-    const estimateUsable = fund?.intraday_estimate?.usable_for_today_decision;
-    const underlyingUsable = fund?.underlying_realtime?.usable_for_today_decision;
-    const hasRealtime = estimateUsable || underlyingUsable;
+  function itemFromFund(fund, config) {
+    const usable =
+      fund?.intraday_estimate?.usable_for_today_decision &&
+      fund?.underlying_realtime?.usable_for_today_decision;
+
+    if (!usable) {
+      return {
+        title: config.blockedTitle,
+        impact: config.impact,
+        time: formatDecisionTime(
+          fund?.intraday_estimate?.data_time ?? fund?.underlying_realtime?.data_time
+        ),
+        source: "天天基金估值接口 / 实时代理行情接口",
+        credibility: "中",
+        fact: `当前实时链路不完整：估值 ${formatPercent(
+          fund?.intraday_estimate?.change_pct
+        )}，代理 ${formatPercent(fund?.underlying_realtime?.change_pct)}。`,
+        why: config.blockedWhy,
+      };
+    }
 
     return {
-      title: hasRealtime ? successTitle : blockedTitle,
-      impact,
+      title: config.title,
+      impact: config.impact,
       time: formatDecisionTime(
         fund?.decision_feed?.data_time ??
           fund?.intraday_estimate?.data_time ??
           fund?.underlying_realtime?.data_time
       ),
       source: "天天基金估值接口 / 实时代理行情接口",
-      credibility: hasRealtime ? "中高" : "中",
-      fact: hasRealtime
-        ? `${fund?.code} 盘中估值 ${formatPercent(
-            fund?.intraday_estimate?.change_pct
-          )}，实时代理 ${formatPercent(fund?.underlying_realtime?.change_pct)}。`
-        : `${fund?.code} 本次未拿到可用于当天判断的实时数据；估值错误：${
-            fund?.intraday_estimate?.error ?? "无"
-          }；代理错误：${fund?.underlying_realtime?.error ?? "无"}。`,
-      why: hasRealtime ? successWhy : blockedWhy,
+      credibility: "中高",
+      fact: `估值 ${formatPercent(
+        fund?.intraday_estimate?.change_pct
+      )}，代理 ${formatPercent(fund?.underlying_realtime?.change_pct)}。`,
+      why: config.why,
     };
   }
 
   return [
-    buildRecentItem(
-      core,
-      "半导体",
-      "012552 盘中估值已能和实时持仓篮子交叉校验。",
-      "012552 今天未拿到可核验的实时估值与代理。",
-      "这说明核心宽基仓今天的判断不再依赖过时页面净值，可以按当天节奏看待。",
-      "这意味着今天不能根据 012552 给出节奏建议，否则会把旧数据或空数据误当成当天判断依据。 "
-    ),
-    buildRecentItem(
-      equip,
-      "半导体设备",
-      "021532 的设备链实时代理与估值方向一致。",
-      "021532 今天未拿到可核验的设备链实时数据。",
-      "设备方向弹性高，但今天的实时代理和估值没有打架，说明可以保守参考当天方向。",
-      "设备方向本来就波动大，缺少实时校验时更不能放大动作，只能保留长期逻辑。"
-    ),
-    buildRecentItem(
-      gold,
-      "黄金",
-      "000218 的黄金估值和底层黄金 ETF 基本同步。",
-      "000218 今天未拿到可核验的黄金实时数据。",
-      "这意味着黄金的当天弱势是真实存在的，不应再用旧净值误判为已经企稳。",
-      "黄金当天方向无法确认时，只能继续把它当防守仓处理，不能根据盘中节奏做加减仓判断。"
-    ),
+    itemFromFund(core, {
+      title: "核心半导体回落，但更像震荡",
+      blockedTitle: "核心半导体今天暂不做节奏判断",
+      impact: "半导体",
+      why: "核心仓回落幅度不大，说明今天更像盘中消化波动，适合继续按原计划慢慢买。",
+      blockedWhy: "核心宽基缺少完整实时校验时，不适合根据盘中涨跌放大动作。",
+    }),
+    itemFromFund(equip, {
+      title: "设备链更强，但不适合追尖峰",
+      blockedTitle: "设备链今天暂不放大动作",
+      impact: "半导体设备",
+      why: "设备方向弹性更大，今天确实更强，但越强的板块越容易出现快速回吐，所以节奏必须慢。",
+      blockedWhy: "设备链本来就波动大，缺少完整实时校验时只保留长期逻辑。",
+    }),
+    itemFromFund(gold, {
+      title: "黄金弱势被确认，继续当防守仓",
+      blockedTitle: "黄金今天只保留防守仓判断",
+      impact: "黄金",
+      why: "联接基金估值和黄金 ETF 代理方向一致，说明今天的弱势是真实存在的，不是净值滞后造成的错觉。",
+      blockedWhy: "黄金当天方向没有确认时，只能按防守仓处理，不根据盘中节奏做动作。",
+    }),
   ];
 }
 
@@ -357,20 +477,21 @@ function reportHtml(data) {
   const generatedAt = toChinaString(data.generated_at);
   const decisionLevel = buildDecisionLevel(data.funds);
   const freshnessSnapshot = buildFreshnessSnapshot(data.funds);
+  const topConclusion = buildTopConclusion(data.funds, decisionLevel);
   const semis = buildSemiconductorSummary(data.funds, decisionLevel);
-  const gold = buildGoldSummary(data.funds, decisionLevel);
-  const eventItems = buildEventItems(data.funds);
+  const gold = buildGoldSummary(data.funds);
+  const todayViewItems = buildTodayViewItems(data.funds);
 
   const actionCards =
     decisionLevel.level === "C"
       ? `
         <article class="action-card" style="grid-column: 1 / -1;">
           <div class="card-head">
-            <strong>今日不输出操作建议</strong>
-            <span class="badge bad">C 级降级</span>
+            <strong>今天先不做动作判断</strong>
+            <span class="badge bad">暂停建议</span>
           </div>
-          <p><b>原因：</b>${decisionLevel.downgrade_reason}</p>
-          <p class="muted"><b>说明：</b>当天动作判断暂停，以下基金表格仅保留正式净值复核与长期逻辑。</p>
+          <p><b>原因：</b>${topConclusion.subhead}</p>
+          <p class="muted"><b>说明：</b>${decisionLevel.downgrade_reason}</p>
         </article>
       `
       : data.funds
@@ -384,27 +505,10 @@ function reportHtml(data) {
                     fund.decision_status
                   )}</span>
                 </div>
-                <p><b>是否可操作：</b>${fund.decision_status === "ok" ? "可以，但仅限谨慎小额" : "只能保守处理"}</p>
-                <p><b>操作方向：</b>${action.action}</p>
+                <p><b>建议：</b>${action.action}</p>
                 <p><b>节奏：</b>${action.mode}</p>
-                <p><b>原因：</b>${fund.decision_reason}</p>
-                <p class="muted"><b>证据：</b>估值 ${formatPercent(
-                  fund.intraday_estimate?.change_pct
-                )}，数据时间 ${formatDecisionTime(
-                  fund.intraday_estimate?.data_time
-                )}，新鲜度 ${formatFreshness(
-                  fund.intraday_estimate?.freshness_minutes
-                )}，${
-                  fund.intraday_estimate?.usable_for_today_decision ? "满足" : "不满足"
-                }门槛；代理 ${formatPercent(
-                  fund.underlying_realtime?.change_pct
-                )}，数据时间 ${formatDecisionTime(
-                  fund.underlying_realtime?.data_time
-                )}，新鲜度 ${formatFreshness(
-                  fund.underlying_realtime?.freshness_minutes
-                )}，${
-                  fund.underlying_realtime?.usable_for_today_decision ? "满足" : "不满足"
-                }门槛。</p>
+                <p><b>原因：</b>${buildFundReason(fund, decisionLevel)}</p>
+                <p class="muted"><b>证据：</b>${buildFundEvidence(fund)}</p>
               </article>
             `;
           })
@@ -421,7 +525,7 @@ function reportHtml(data) {
     `
   ).join("");
 
-  const recentCards = eventItems
+  const todayCards = todayViewItems
     .map(
       (item) => `
       <article class="event-card">
@@ -535,33 +639,28 @@ function reportHtml(data) {
 <main>
   <section>
     <div class="meta-row">
-      <div class="meta-pill">报告日期：${data.report_date}</div>
+      <div class="meta-pill">数据可信度：${freshnessSnapshot.confidence}%</div>
+      <div class="meta-pill">实时覆盖：${freshnessSnapshot.coverage}</div>
       <div class="meta-pill">抓取时间：${generatedAt} CST</div>
-      <div class="meta-pill">实时判断数据时间：${freshnessSnapshot.time_range}</div>
-      <div class="meta-pill">新鲜度状态：${freshnessSnapshot.freshness_status}</div>
-      <div class="meta-pill">降级等级：${decisionLevel.level} 级</div>
-      <div class="meta-pill">数据状态：ok ${data.stats.ok_count} / cautious ${data.stats.cautious_count} / blocked ${data.stats.blocked_count}</div>
-      <div class="meta-pill">今日框架：${decisionLevel.stance}</div>
-      <div class="meta-pill">产物位置：reports/latest</div>
+      <div class="meta-pill">新鲜程度：${freshnessSnapshot.freshness_status}</div>
     </div>
-    <h1>${decisionLevel.title}</h1>
-    <p class="muted">这份报告已经不再用几天前的旧净值充当天主判断。顶部结论来自盘中估值、半导体持仓篮子代理和黄金 ETF 代理，正式净值只保留为确认层。</p>
+    <h1>${topConclusion.headline}</h1>
+    <p class="muted">${topConclusion.subhead}</p>
     <div class="summary-grid">
       <article class="summary-card chip">
-        <h2>半导体一句话总结</h2>
+        <h2>半导体今天怎么看</h2>
         <p>${semis}</p>
       </article>
       <article class="summary-card gold">
-        <h2>黄金一句话总结</h2>
+        <h2>黄金今天怎么看</h2>
         <p>${gold}</p>
       </article>
     </div>
     <div class="framework">
-      <h2>今日判断框架</h2>
-      <p><b>结论：</b>${decisionLevel.stance}</p>
-      <p><b>解释：</b>${decisionLevel.body}</p>
-      <p><b>今日操作建议：</b>${decisionLevel.level === "C" ? "今日不输出操作建议" : "以下建议仅适用于长期投资者的小额节奏调整，不是盘中喊单。"}</p>
-      <p><b>提醒：</b>半导体两只基金的代理数据来自前十大持仓等权实时篮子，黄金代理来自黄金ETF国泰；它们是当天判断的校验层，不是正式净值本身。</p>
+      <h2>今日结论</h2>
+      <p><b>主判断：</b>${decisionLevel.level === "C" ? "今天不做动作判断" : "今天可以给到具体基金建议，但只限小额、分批、慢节奏。"}</p>
+      <p><b>操作边界：</b>${topConclusion.boundary}</p>
+      <p><b>这份报告怎么用：</b>把它当成当天节奏参考，不把单次盘中波动当成趋势确认，更不把它当成盘中喊单。</p>
       ${
         decisionLevel.run_issue
           ? `<p><b>运行告警：</b>${decisionLevel.run_issue}</p>`
@@ -573,11 +672,10 @@ function reportHtml(data) {
   </section>
 
   <section>
-    <h2>信息事件层</h2>
-    <h3>长期信息总结</h3>
+    <h2>今天为什么这么看</h2>
+    <div class="event-grid">${todayCards}</div>
+    <h3 style="margin-top:20px;">长期逻辑有没有变</h3>
     <div class="event-grid">${longTermCards}</div>
-    <h3 style="margin-top:20px;">近期信息一览</h3>
-    <div class="event-grid">${recentCards}</div>
   </section>
 
   <section>
@@ -610,7 +708,7 @@ function reportHtml(data) {
     <h2>补充说明</h2>
     <p><b>信息来源摘要：</b>当天主判断来自天天基金估值接口与实时代理行情接口；正式确认层来自东方财富历史净值接口；长期背景层使用已复核的 WSTS、BIS、World Gold Council 与 SAFE 公开来源。</p>
     <p><b>不确定性说明：</b>半导体两只基金的代理并非基金官方实时净值，而是前十大持仓等权实时篮子，因此它更适合做当天方向校验，不适合替代正式净值做长期收益统计。黄金代理使用黄金 ETF 实时行情，适合判断当天方向，但同样不替代基金收盘确认值。</p>
-    <p><b>本次降级原因：</b>${decisionLevel.downgrade_reason || "本次未触发降级，可按 A 级规则输出谨慎小额建议。"}</p>
+    <p><b>数据异常说明：</b>${decisionLevel.downgrade_reason || "本次未触发数据降级，主判断可直接参考。"}</p>
   </section>
 </main>
 </body>
