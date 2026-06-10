@@ -7,39 +7,6 @@ const DEFAULT_INPUT = path.join("reports", "latest", "data.json");
 const DEFAULT_REPORT = path.join("reports", "latest", "report.html");
 const DEFAULT_SOURCES = path.join("reports", "latest", "sources.md");
 
-const LONG_TERM_ITEMS = [
-  {
-    title: "AI 算力、先进存储和国产替代仍是半导体长期主线。",
-    impact: "半导体",
-    time: "2026-06-02",
-    source: "WSTS",
-    url: "https://www.wsts.org/76/Recent-News",
-    credibility: "高",
-    fact: "行业协会在 2026-06-02 的春季更新里继续维持半导体高景气判断。",
-    inference: "这意味着半导体的长期方向仍成立，当天判断应更多取决于节奏和新鲜数据，而不是怀疑主逻辑。",
-  },
-  {
-    title: "半导体设备链仍会受出口限制和国产替代双重驱动。",
-    impact: "半导体设备",
-    time: "2026-05-31",
-    source: "BIS",
-    url: "https://www.bis.gov/news-events/news/2026-05-31-guidance-advanced-computing-items-country-group-d5-macau",
-    credibility: "高",
-    fact: "美国商务部在 2026-05-31 延续先进计算相关出口合规边界。",
-    inference: "设备链的高弹性和高波动会长期并存，因此 021532 的动作节奏必须慢于情绪波动。",
-  },
-  {
-    title: "黄金长期仍受央行购金和储备需求支撑。",
-    impact: "黄金",
-    time: "2026-04-30 / 2026-06-07",
-    source: "World Gold Council / SAFE",
-    url: "https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026",
-    credibility: "高",
-    fact: "世界黄金协会 Q1 2026 报告和中国 2026-06-07 储备数据都说明黄金仍具长期配置需求。",
-    inference: "黄金作为防守仓的长期定位没有改变，但当天节奏仍应以实时数据和利率环境约束为准。",
-  },
-];
-
 function getArg(name, fallback = null) {
   const index = process.argv.indexOf(name);
   if (index === -1) return fallback;
@@ -405,72 +372,28 @@ function buildFundEvidence(fund) {
   )}（${proxyTime}）。`;
 }
 
-function buildTodayViewItems(funds) {
-  const core = funds.find((item) => item.code === "012552");
-  const equip = funds.find((item) => item.code === "021532");
-  const gold = funds.find((item) => item.code === "000218");
-
-  function itemFromFund(fund, config) {
-    const usable =
-      fund?.intraday_estimate?.usable_for_today_decision &&
-      fund?.underlying_realtime?.usable_for_today_decision;
-
-    if (!usable) {
-      return {
-        title: config.blockedTitle,
-        impact: config.impact,
-        time: formatDecisionTime(
-          fund?.intraday_estimate?.data_time ?? fund?.underlying_realtime?.data_time
-        ),
-        source: "天天基金估值接口 / 实时代理行情接口",
-        credibility: "中",
-        fact: `当前实时链路不完整：估值 ${formatPercent(
-          fund?.intraday_estimate?.change_pct
-        )}，代理 ${formatPercent(fund?.underlying_realtime?.change_pct)}。`,
-        why: config.blockedWhy,
-      };
-    }
-
-    return {
-      title: config.title,
-      impact: config.impact,
-      time: formatDecisionTime(
-        fund?.decision_feed?.data_time ??
-          fund?.intraday_estimate?.data_time ??
-          fund?.underlying_realtime?.data_time
-      ),
-      source: "天天基金估值接口 / 实时代理行情接口",
-      credibility: "中高",
-      fact: `估值 ${formatPercent(
-        fund?.intraday_estimate?.change_pct
-      )}，代理 ${formatPercent(fund?.underlying_realtime?.change_pct)}。`,
-      why: config.why,
-    };
+function renderInfoCards(items, emptyText) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return `
+      <article class="event-card">
+        <p><strong>${emptyText}</strong></p>
+        <p class="muted">这次运行没有抓到足够高价值、且适合放进这一层的官方新增信息。</p>
+      </article>
+    `;
   }
 
-  return [
-    itemFromFund(core, {
-      title: "核心半导体回落，但更像震荡",
-      blockedTitle: "核心半导体今天暂不做节奏判断",
-      impact: "半导体",
-      why: "核心仓回落幅度不大，说明今天更像盘中消化波动，适合继续按原计划慢慢买。",
-      blockedWhy: "核心宽基缺少完整实时校验时，不适合根据盘中涨跌放大动作。",
-    }),
-    itemFromFund(equip, {
-      title: "设备链更强，但不适合追尖峰",
-      blockedTitle: "设备链今天暂不放大动作",
-      impact: "半导体设备",
-      why: "设备方向弹性更大，今天确实更强，但越强的板块越容易出现快速回吐，所以节奏必须慢。",
-      blockedWhy: "设备链本来就波动大，缺少完整实时校验时只保留长期逻辑。",
-    }),
-    itemFromFund(gold, {
-      title: "黄金弱势被确认，继续当防守仓",
-      blockedTitle: "黄金今天只保留防守仓判断",
-      impact: "黄金",
-      why: "联接基金估值和黄金 ETF 代理方向一致，说明今天的弱势是真实存在的，不是净值滞后造成的错觉。",
-      blockedWhy: "黄金当天方向没有确认时，只能按防守仓处理，不根据盘中节奏做动作。",
-    }),
-  ];
+  return items
+    .map(
+      (item) => `
+      <article class="event-card">
+        <p><strong>${item.title}</strong></p>
+        <p class="meta">影响对象：${item.impact}｜时间：${item.time}｜来源：<a href="${item.url}" target="_blank" rel="noreferrer">${item.source}</a>｜可信度：${item.credibility}</p>
+        <p><b>原始信息：</b>${item.fact}</p>
+        <p><b>可能影响：</b>${item.effect}</p>
+      </article>
+    `
+    )
+    .join("");
 }
 
 function reportHtml(data) {
@@ -480,7 +403,14 @@ function reportHtml(data) {
   const topConclusion = buildTopConclusion(data.funds, decisionLevel);
   const semis = buildSemiconductorSummary(data.funds, decisionLevel);
   const gold = buildGoldSummary(data.funds);
-  const todayViewItems = buildTodayViewItems(data.funds);
+  const recentInfoCards = renderInfoCards(
+    data.recent_info_items,
+    "近期高价值新增信息：无"
+  );
+  const longTermCards = renderInfoCards(
+    data.long_term_info_items,
+    "长期关键锚点：本次未补充"
+  );
 
   const actionCards =
     decisionLevel.level === "C"
@@ -513,30 +443,6 @@ function reportHtml(data) {
             `;
           })
           .join("");
-
-  const longTermCards = LONG_TERM_ITEMS.map(
-    (item) => `
-      <article class="event-card">
-        <p><strong>${item.title}</strong></p>
-        <p class="meta">影响对象：${item.impact}｜时间：${item.time}｜来源：${item.source}｜可信度：${item.credibility}</p>
-        <p><b>事实：</b>${item.fact}</p>
-        <p><b>推断：</b>${item.inference}</p>
-      </article>
-    `
-  ).join("");
-
-  const todayCards = todayViewItems
-    .map(
-      (item) => `
-      <article class="event-card">
-        <p><strong>${item.title}</strong></p>
-        <p class="meta">影响对象：${item.impact}｜时间：${item.time}｜来源：${item.source}｜可信度：${item.credibility}</p>
-        <p><b>事实：</b>${item.fact}</p>
-        <p><b>为什么值得看：</b>${item.why}</p>
-      </article>
-    `
-    )
-    .join("");
 
   const rows = data.funds
     .map(
@@ -607,13 +513,12 @@ function reportHtml(data) {
     h2 { font-size: clamp(22px, 2.6vw, 30px); margin-bottom: 14px; }
     .meta-row, .summary-grid, .actions, .event-grid { display: grid; gap: 14px; }
     .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
-    .meta-pill, .summary-card, .framework, .action-card, .event-card { border: 1px solid var(--line); border-radius: 20px; background: var(--paper); }
+    .meta-pill, .summary-card, .action-card, .event-card { border: 1px solid var(--line); border-radius: 20px; background: var(--paper); }
     .meta-pill { padding: 10px 12px; color: var(--muted); font-size: 14px; }
     .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
     .summary-card { padding: 18px; }
     .summary-card.chip { border-top: 5px solid var(--chip); }
     .summary-card.gold { border-top: 5px solid var(--gold); }
-    .framework { padding: 18px; margin-top: 16px; background: linear-gradient(135deg, rgba(13, 105, 93, 0.06), rgba(168, 117, 25, 0.08)); }
     .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
     .action-card { padding: 18px; }
     .card-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
@@ -656,25 +561,16 @@ function reportHtml(data) {
         <p>${gold}</p>
       </article>
     </div>
-    <div class="framework">
-      <h2>今日结论</h2>
-      <p><b>主判断：</b>${decisionLevel.level === "C" ? "今天不做动作判断" : "今天可以给到具体基金建议，但只限小额、分批、慢节奏。"}</p>
-      <p><b>操作边界：</b>${topConclusion.boundary}</p>
-      <p><b>这份报告怎么用：</b>把它当成当天节奏参考，不把单次盘中波动当成趋势确认，更不把它当成盘中喊单。</p>
-      ${
-        decisionLevel.run_issue
-          ? `<p><b>运行告警：</b>${decisionLevel.run_issue}</p>`
-          : ""
-      }
-    </div>
     <h2 style="margin-top:18px;">今日操作建议</h2>
+    <p class="muted">${topConclusion.boundary}</p>
     <div class="actions">${actionCards}</div>
   </section>
 
   <section>
-    <h2>今天为什么这么看</h2>
-    <div class="event-grid">${todayCards}</div>
-    <h3 style="margin-top:20px;">长期逻辑有没有变</h3>
+    <h2>原始信息层</h2>
+    <h3>近期信息</h3>
+    <div class="event-grid">${recentInfoCards}</div>
+    <h3 style="margin-top:20px;">长期信息</h3>
     <div class="event-grid">${longTermCards}</div>
   </section>
 
@@ -706,9 +602,9 @@ function reportHtml(data) {
 
   <section>
     <h2>补充说明</h2>
-    <p><b>信息来源摘要：</b>当天主判断来自天天基金估值接口与实时代理行情接口；正式确认层来自东方财富历史净值接口；长期背景层使用已复核的 WSTS、BIS、World Gold Council 与 SAFE 公开来源。</p>
+    <p><b>信息来源摘要：</b>当天主判断来自天天基金估值接口与实时代理行情接口；正式确认层来自东方财富历史净值接口；原始信息层使用已复核的 WSTS、World Gold Council 与 SAFE 官方公开来源。</p>
     <p><b>不确定性说明：</b>半导体两只基金的代理并非基金官方实时净值，而是前十大持仓等权实时篮子，因此它更适合做当天方向校验，不适合替代正式净值做长期收益统计。黄金代理使用黄金 ETF 实时行情，适合判断当天方向，但同样不替代基金收盘确认值。</p>
-    <p><b>数据异常说明：</b>${decisionLevel.downgrade_reason || "本次未触发数据降级，主判断可直接参考。"}</p>
+    <p><b>数据异常说明：</b>${[decisionLevel.downgrade_reason, ...(data.info_source_errors ?? [])].filter(Boolean).join("；") || "本次未触发数据降级，且原始信息层抓取正常。"}</p>
   </section>
 </main>
 </body>
@@ -753,13 +649,33 @@ function sourcesMarkdown(data) {
     )
     .join("\n\n");
 
-  const longTermBlocks = LONG_TERM_ITEMS.map(
-    (item) => `- 来源名称：${item.source}
+  const recentInfoBlocks = (Array.isArray(data.recent_info_items)
+    ? data.recent_info_items
+    : []
+  )
+    .map(
+      (item) => `- 条目标题：${item.title}
+- 来源名称：${item.source}
 - 链接：${item.url}
-- 用途：${item.impact} 的长期逻辑背景。
+- 用途：${item.impact} 的近期原始信息。
 - 发布时间：${item.time}
-- 可信度备注：${item.credibility}；用于长期层，不用于当天盘中判断。`
-  ).join("\n\n");
+- 可信度备注：${item.credibility}；用于原始信息层，不直接替代当天盘中判断。`
+    )
+    .join("\n\n");
+
+  const longTermInfoBlocks = (Array.isArray(data.long_term_info_items)
+    ? data.long_term_info_items
+    : []
+  )
+    .map(
+      (item) => `- 条目标题：${item.title}
+- 来源名称：${item.source}
+- 链接：${item.url}
+- 用途：${item.impact} 的长期原始信息。
+- 发布时间：${item.time}
+- 可信度备注：${item.credibility}；用于原始信息层，不直接替代当天盘中判断。`
+    )
+    .join("\n\n");
 
   return `# Sources - ${data.report_date}
 
@@ -773,9 +689,13 @@ ${liveBlocks}
 
 ${officialBlocks}
 
-## 长期背景层
+## 原始信息层 - 近期信息
 
-${longTermBlocks}
+${recentInfoBlocks || "- 本次未抓到可写入近期信息的官方事件。"}
+
+## 原始信息层 - 长期信息
+
+${longTermInfoBlocks || "- 本次未抓到可写入长期信息的官方事件。"}
 `;
 }
 

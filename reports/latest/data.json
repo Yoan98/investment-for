@@ -1,7 +1,7 @@
 {
   "report_date": "2026-06-10",
   "timezone": "Asia/Shanghai",
-  "generated_at": "2026-06-10T08:15:34.550Z",
+  "generated_at": "2026-06-10T09:30:42.448Z",
   "funds": [
     {
       "code": "012552",
@@ -14,7 +14,7 @@
         "previous_nav": 1.5567,
         "previous_nav_date": "2026-06-09",
         "data_time": "2026-06-10 15:00",
-        "fetch_time": "2026-06-10T08:15:34.322Z",
+        "fetch_time": "2026-06-10T09:30:38.271Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "天天基金估值接口",
@@ -29,7 +29,7 @@
         "previous_nav": 1.5567,
         "previous_nav_date": "2026-06-09",
         "data_time": "2026-06-10 15:00",
-        "fetch_time": "2026-06-10T08:15:34.322Z",
+        "fetch_time": "2026-06-10T09:30:38.271Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "天天基金估值接口",
@@ -50,7 +50,7 @@
         "type": "basket_proxy",
         "label": "前十大持仓等权实时篮子",
         "data_time": "2026-06-10T08:14:58.000Z",
-        "fetch_time": "2026-06-10T08:15:34.322Z",
+        "fetch_time": "2026-06-10T09:30:38.271Z",
         "freshness_minutes": 0,
         "component_count": 10,
         "usable_component_count": 10,
@@ -176,7 +176,7 @@
         "previous_nav": 2.8711,
         "previous_nav_date": "2026-06-09",
         "data_time": "2026-06-10 15:00",
-        "fetch_time": "2026-06-10T08:15:34.324Z",
+        "fetch_time": "2026-06-10T09:30:38.272Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "天天基金估值接口",
@@ -191,7 +191,7 @@
         "previous_nav": 2.8711,
         "previous_nav_date": "2026-06-09",
         "data_time": "2026-06-10 15:00",
-        "fetch_time": "2026-06-10T08:15:34.324Z",
+        "fetch_time": "2026-06-10T09:30:38.272Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "天天基金估值接口",
@@ -212,7 +212,7 @@
         "type": "basket_proxy",
         "label": "前十大设备持仓等权实时篮子",
         "data_time": "2026-06-10T08:14:58.000Z",
-        "fetch_time": "2026-06-10T08:15:34.322Z",
+        "fetch_time": "2026-06-10T09:30:38.271Z",
         "freshness_minutes": 0,
         "component_count": 10,
         "usable_component_count": 10,
@@ -338,7 +338,7 @@
         "previous_nav": 3.4164,
         "previous_nav_date": "2026-06-09",
         "data_time": "2026-06-10 15:30",
-        "fetch_time": "2026-06-10T08:15:34.325Z",
+        "fetch_time": "2026-06-10T09:30:38.274Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "天天基金估值接口",
@@ -353,7 +353,7 @@
         "previous_nav": 3.4164,
         "previous_nav_date": "2026-06-09",
         "data_time": "2026-06-10 15:30",
-        "fetch_time": "2026-06-10T08:15:34.325Z",
+        "fetch_time": "2026-06-10T09:30:38.274Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "天天基金估值接口",
@@ -379,7 +379,7 @@
         "data_time": "2026-06-10T08:14:49.000Z",
         "code": "518800",
         "type": "tencent_quote_proxy",
-        "fetch_time": "2026-06-10T08:15:34.322Z",
+        "fetch_time": "2026-06-10T09:30:38.271Z",
         "freshness_minutes": 0,
         "usable_for_today_decision": true,
         "source_name": "腾讯行情接口",
@@ -387,6 +387,51 @@
       }
     }
   ],
+  "recent_info_items": [
+    {
+      "title": "WSTS 上调 2026 年全球半导体市场规模预期",
+      "impact": "半导体",
+      "time": "2026-06-02",
+      "source": "WSTS",
+      "url": "https://www.wsts.org/76/Recent-News-Release",
+      "credibility": "高",
+      "fact": "WSTS 在最新春季预测中写明，2026 年全球半导体市场预计同比增长 90% ，达到 1.51 万亿美元。",
+      "effect": "这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。"
+    },
+    {
+      "title": "中国 5 月官方黄金储备继续增加",
+      "impact": "黄金",
+      "time": "2026-06-07",
+      "source": "SAFE",
+      "url": "https://www.safe.gov.cn/safe/2026/0206/27116.html",
+      "credibility": "高",
+      "fact": "国家外汇管理局公布的官方储备资产显示，2026 年 5 月黄金储备为 7496 万盎司，高于 2026 年 4 月的 7464 万盎司；按美元计的黄金储备价值为 3407.52 亿美元。",
+      "effect": "央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。"
+    }
+  ],
+  "long_term_info_items": [
+    {
+      "title": "AI 基础设施和 HBM 仍是半导体长期驱动",
+      "impact": "半导体",
+      "time": "2026-06-02",
+      "source": "WSTS",
+      "url": "https://www.wsts.org/76/Recent-News-Release",
+      "credibility": "高",
+      "fact": "WSTS 指出，2026 年存储器预计同比增长约 250% ，规模超过 800 十亿美元；2027 年全球半导体市场还预计继续增长 27% 至约 1.9 万亿美元。",
+      "effect": "长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。"
+    },
+    {
+      "title": "WGC 季报显示黄金长期需求仍有央行与实物投资支撑",
+      "impact": "黄金",
+      "time": "2026-04-29",
+      "source": "World Gold Council",
+      "url": "https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026",
+      "credibility": "高",
+      "fact": "世界黄金协会 Q1 2026 季报显示，全球黄金总需求同比小幅升至 1,231 吨，总价值创 1930 亿美元新高；金条金币投资推动需求增长，ETF 买盘放缓，但央行仍保持较大买入力度。",
+      "effect": "黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。"
+    }
+  ],
+  "info_source_errors": [],
   "stats": {
     "ok_count": 3,
     "cautious_count": 0,

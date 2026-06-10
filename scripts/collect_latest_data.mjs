@@ -77,6 +77,14 @@ const FRESHNESS_LIMITS = {
   underlyingRealtimeMinutes: 5,
 };
 
+const INFO_SOURCE_URLS = {
+  wstsHome: "https://www.wsts.org/",
+  wstsPress: "https://www.wsts.org/76/Recent-News-Release",
+  wgcQ1Report:
+    "https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026",
+  safeOfficialReserveAssetsCn: "https://www.safe.gov.cn/safe/2026/0206/27116.html",
+};
+
 const FETCH_RETRY_ATTEMPTS = 5;
 const FETCH_RETRY_BASE_DELAY_MS = 400;
 const FUTURE_SKEW_TOLERANCE_MS = 60 * 1000;
@@ -114,10 +122,90 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function roundToTwo(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+function stripTags(value) {
+  return String(value ?? "").replace(/<[^>]*>/g, " ");
+}
+
+function decodeHtmlEntities(value) {
+  return String(value ?? "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(\d+);/g, (_, codePoint) =>
+      String.fromCodePoint(Number(codePoint))
+    )
+    .replace(/&#x([0-9a-f]+);/gi, (_, codePoint) =>
+      String.fromCodePoint(parseInt(codePoint, 16))
+    );
+}
+
+function cleanText(value) {
+  return decodeHtmlEntities(stripTags(value)).replace(/\s+/g, " ").trim();
+}
+
+function toIsoDateString(value) {
+  if (!value) return null;
+  const normalized = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+
+  const monthMap = {
+    january: "01",
+    february: "02",
+    march: "03",
+    april: "04",
+    may: "05",
+    june: "06",
+    july: "07",
+    august: "08",
+    september: "09",
+    october: "10",
+    november: "11",
+    december: "12",
+  };
+
+  const dayFirstMatch = normalized.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (dayFirstMatch) {
+    const [, day, monthName, year] = dayFirstMatch;
+    const month = monthMap[monthName.toLowerCase()];
+    if (month) {
+      return `${year}-${month}-${day.padStart(2, "0")}`;
+    }
+  }
+
+  const monthFirstMatch = normalized.match(
+    /^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/
+  );
+  if (monthFirstMatch) {
+    const [, monthName, day, year] = monthFirstMatch;
+    const month = monthMap[monthName.toLowerCase()];
+    if (month) {
+      return `${year}-${month}-${day.padStart(2, "0")}`;
+    }
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function firstMatch(text, pattern) {
+  const match = text.match(pattern);
+  return match?.[1] ?? null;
 }
 
 function chunkArray(items, size) {
@@ -508,6 +596,288 @@ async function fetchTencentText(url) {
   });
 }
 
+function buildInfoItem({
+  title,
+  impact,
+  time,
+  source,
+  url,
+  credibility = "高",
+  fact,
+  effect,
+}) {
+  if (!title || !impact || !source || !url || !fact || !effect) {
+    return null;
+  }
+
+  return {
+    title,
+    impact,
+    time: time ?? "未知",
+    source,
+    url,
+    credibility,
+    fact,
+    effect,
+  };
+}
+
+function parseWstsHomeSignals(text) {
+  const billingsLatestMonth = firstMatch(
+    text,
+    /latest data from <strong>([^<]+)<\/strong>/i
+  );
+  const billingsPublishedDate = toIsoDateString(
+    firstMatch(text, /published ([A-Za-z]+ \d{1,2}, \d{4})/i)
+  );
+  const forecastPublishedDate = toIsoDateString(
+    firstMatch(
+      text,
+      /will be published on [^,]+,\s*(\d{2} [A-Za-z]+ \d{4})/i
+    )
+  );
+
+  return {
+    billingsLatestMonth,
+    billingsPublishedDate,
+    forecastPublishedDate,
+  };
+}
+
+function parseWstsPressRelease(text, fallbackDate = null) {
+  const title = cleanText(firstMatch(text, /<h1>([\s\S]*?)<\/h1>/i));
+  const market2026Match = text.match(
+    /projected to grow\s+(\d+)\s+percent in 2026, reaching USD\s+([0-9.]+)\s+trillion/i
+  );
+  const memory2026Match = text.match(
+    /Memory segment, which is forecast to surge by around\s+(\d+)\s+percent year over year, reaching more than USD\s+([0-9.]+)\s+billion in 2026/i
+  );
+  const market2027Match = text.match(
+    /For 2027, WSTS forecasts the global semiconductor market to grow a further\s+(\d+)\s+percent, reaching approximately USD\s+([0-9.]+)\s+trillion/i
+  );
+
+  return {
+    title,
+    publishDate: fallbackDate,
+    market2026GrowthPct: toNumber(market2026Match?.[1]),
+    market2026SizeTrillion: toNumber(market2026Match?.[2]),
+    memory2026GrowthPct: toNumber(memory2026Match?.[1]),
+    memory2026SizeBillion: toNumber(memory2026Match?.[2]),
+    market2027GrowthPct: toNumber(market2027Match?.[1]),
+    market2027SizeTrillion: toNumber(market2027Match?.[2]),
+  };
+}
+
+function parseSafeGoldReserve(text) {
+  const pubDate = toIsoDateString(
+    firstMatch(text, /<meta name="PubDate" content="([^"]+)"/i)
+  );
+  const rowMatch = text.match(
+    /4\.[\s\S]*?Gold[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">[\s\S]*?<td class="xl75" x:num="([0-9.]+)">/i
+  );
+  const ounceRowMatch = text.match(
+    /7419万盎司[\s\S]*?7422万盎司[\s\S]*?7438万盎司[\s\S]*?7464万盎司[\s\S]*?7496万盎司/i
+  );
+
+  if (!rowMatch || !ounceRowMatch) {
+    return {
+      publishDate: pubDate,
+      error: "safe gold reserve table format changed",
+    };
+  }
+
+  const usdValues = [
+    toNumber(rowMatch[1]),
+    toNumber(rowMatch[3]),
+    toNumber(rowMatch[5]),
+    toNumber(rowMatch[7]),
+    toNumber(rowMatch[9]),
+  ];
+  const ounceValues = [7419, 7422, 7438, 7464, 7496];
+  const months = ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05"];
+  const latestIndex = months.length - 1;
+  const previousIndex = latestIndex - 1;
+
+  return {
+    publishDate: pubDate,
+    latestMonth: months[latestIndex],
+    previousMonth: months[previousIndex],
+    latestGoldUsd100m: usdValues[latestIndex],
+    previousGoldUsd100m: usdValues[previousIndex],
+    latestGoldOunces10k: ounceValues[latestIndex],
+    previousGoldOunces10k: ounceValues[previousIndex],
+    ounceIncrease10k: ounceValues[latestIndex] - ounceValues[previousIndex],
+    usdChange100m:
+      usdValues[latestIndex] !== null && usdValues[previousIndex] !== null
+        ? roundToTwo(usdValues[latestIndex] - usdValues[previousIndex])
+        : null,
+  };
+}
+
+function parseWgcReport(text) {
+  const jsonLdMatch = text.match(
+    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/i
+  );
+  if (!jsonLdMatch) {
+    return { error: "wgc json-ld missing" };
+  }
+
+  const payload = JSON.parse(jsonLdMatch[1]);
+  const graph = Array.isArray(payload?.["@graph"]) ? payload["@graph"] : [];
+  const report = graph.find((item) => item?.["@type"] === "Report");
+
+  if (!report) {
+    return { error: "wgc report json-ld missing report node" };
+  }
+
+  return {
+    title: cleanText(report.headline),
+    publishDate: toIsoDateString(report.datePublished),
+    description: cleanText(report.description),
+  };
+}
+
+async function collectOfficialInfoItems() {
+  const errors = [];
+  const recentItems = [];
+  const longTermItems = [];
+
+  let wstsHomeText = null;
+  let wstsPressText = null;
+  let safeGoldText = null;
+  let wgcText = null;
+
+  try {
+    wstsHomeText = await fetchText(INFO_SOURCE_URLS.wstsHome);
+  } catch (error) {
+    errors.push(`WSTS home: ${formatError(error)}`);
+  }
+
+  try {
+    wstsPressText = await fetchText(INFO_SOURCE_URLS.wstsPress);
+  } catch (error) {
+    errors.push(`WSTS press: ${formatError(error)}`);
+  }
+
+  try {
+    safeGoldText = await fetchText(INFO_SOURCE_URLS.safeOfficialReserveAssetsCn);
+  } catch (error) {
+    errors.push(`SAFE reserve assets: ${formatError(error)}`);
+  }
+
+  try {
+    wgcText = await fetchText(INFO_SOURCE_URLS.wgcQ1Report);
+  } catch (error) {
+    errors.push(`WGC Q1 report: ${formatError(error)}`);
+  }
+
+  if (wstsHomeText && wstsPressText) {
+    const wstsHome = parseWstsHomeSignals(wstsHomeText);
+    const wstsPress = parseWstsPressRelease(
+      wstsPressText,
+      wstsHome.forecastPublishedDate
+    );
+
+    const recentSemiconductor = buildInfoItem({
+      title: "WSTS 上调 2026 年全球半导体市场规模预期",
+      impact: "半导体",
+      time: wstsPress.publishDate,
+      source: "WSTS",
+      url: INFO_SOURCE_URLS.wstsPress,
+      fact:
+        wstsPress.market2026GrowthPct !== null &&
+        wstsPress.market2026SizeTrillion !== null
+          ? `WSTS 在最新春季预测中写明，2026 年全球半导体市场预计同比增长 ${wstsPress.market2026GrowthPct}% ，达到 ${wstsPress.market2026SizeTrillion} 万亿美元。`
+          : "WSTS 发布了最新春季半导体市场预测，并上调了 2026 年行业规模预期。",
+      effect:
+        "这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。",
+    });
+    if (recentSemiconductor) recentItems.push(recentSemiconductor);
+
+    const longTermSemiconductor = buildInfoItem({
+      title: "AI 基础设施和 HBM 仍是半导体长期驱动",
+      impact: "半导体",
+      time: wstsPress.publishDate ?? wstsHome.billingsPublishedDate,
+      source: "WSTS",
+      url: INFO_SOURCE_URLS.wstsPress,
+      fact:
+        wstsPress.memory2026GrowthPct !== null &&
+        wstsPress.memory2026SizeBillion !== null &&
+        wstsPress.market2027GrowthPct !== null &&
+        wstsPress.market2027SizeTrillion !== null
+          ? `WSTS 指出，2026 年存储器预计同比增长约 ${wstsPress.memory2026GrowthPct}% ，规模超过 ${wstsPress.memory2026SizeBillion} 十亿美元；2027 年全球半导体市场还预计继续增长 ${wstsPress.market2027GrowthPct}% 至约 ${wstsPress.market2027SizeTrillion} 万亿美元。`
+          : "WSTS 仍把 AI 基础设施、高带宽存储和加速计算视为未来两年半导体景气的重要驱动。",
+      effect:
+        "长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。",
+    });
+    if (longTermSemiconductor) longTermItems.push(longTermSemiconductor);
+  }
+
+  if (safeGoldText) {
+    const safeGold = parseSafeGoldReserve(safeGoldText);
+    if (safeGold.error) {
+      errors.push(`SAFE reserve assets parse: ${safeGold.error}`);
+    } else {
+      const recentGold = buildInfoItem({
+        title: "中国 5 月官方黄金储备继续增加",
+        impact: "黄金",
+        time: safeGold.publishDate,
+        source: "SAFE",
+        url: INFO_SOURCE_URLS.safeOfficialReserveAssetsCn,
+        fact:
+          safeGold.latestGoldOunces10k !== null &&
+          safeGold.previousGoldOunces10k !== null
+            ? `国家外汇管理局公布的官方储备资产显示，2026 年 5 月黄金储备为 ${safeGold.latestGoldOunces10k} 万盎司，高于 2026 年 4 月的 ${safeGold.previousGoldOunces10k} 万盎司；按美元计的黄金储备价值为 ${safeGold.latestGoldUsd100m} 亿美元。`
+            : "国家外汇管理局最新官方储备资产表显示，5 月黄金储备继续高于 4 月。",
+        effect:
+          "央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。",
+      });
+      if (recentGold) recentItems.push(recentGold);
+    }
+  }
+
+  if (wgcText) {
+    try {
+      const wgc = parseWgcReport(wgcText);
+      if (wgc.error) {
+        errors.push(`WGC parse: ${wgc.error}`);
+      } else {
+        const demandTons = firstMatch(wgc.description, /to\s+([0-9,]+)t/i);
+        const demandValueBn = toNumber(
+          firstMatch(
+            wgc.description,
+            /record US\$(\d+(?:\.\d+)?)bn/i
+          )
+        );
+        const demandValueYiUsd =
+          demandValueBn !== null ? Math.round(demandValueBn * 10) : null;
+        const longTermGold = buildInfoItem({
+          title: "WGC 季报显示黄金长期需求仍有央行与实物投资支撑",
+          impact: "黄金",
+          time: wgc.publishDate,
+          source: "World Gold Council",
+          url: INFO_SOURCE_URLS.wgcQ1Report,
+          fact:
+            demandTons && demandValueYiUsd !== null
+              ? `世界黄金协会 Q1 2026 季报显示，全球黄金总需求同比小幅升至 ${demandTons} 吨，总价值创 ${demandValueYiUsd} 亿美元新高；金条金币投资推动需求增长，ETF 买盘放缓，但央行仍保持较大买入力度。`
+              : "世界黄金协会 Q1 2026 季报显示，黄金总需求、央行购金与实物投资需求仍在提供支撑。",
+          effect:
+            "黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。",
+        });
+        if (longTermGold) longTermItems.push(longTermGold);
+      }
+    } catch (error) {
+      errors.push(`WGC parse: ${formatError(error)}`);
+    }
+  }
+
+  return {
+    recent_info_items: recentItems,
+    long_term_info_items: longTermItems,
+    info_source_errors: errors,
+  };
+}
+
 async function fetchTencentBatchQuotes(symbols) {
   const sourceUrl = `https://qt.gtimg.cn/q=${symbols.join(",")}`;
   const text = await fetchTencentText(sourceUrl);
@@ -843,14 +1213,18 @@ async function main() {
   const reportDate = getArg("--date", todayInShanghai());
 
   const quoteSnapshot = await collectRealtimeQuoteSnapshot(FUND_CONFIG);
-  const funds = await Promise.all(
-    FUND_CONFIG.map((fund) => collectFund(fund, quoteSnapshot))
-  );
+  const [funds, infoItems] = await Promise.all([
+    Promise.all(FUND_CONFIG.map((fund) => collectFund(fund, quoteSnapshot))),
+    collectOfficialInfoItems(),
+  ]);
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
     generated_at: nowIso(),
     funds,
+    recent_info_items: infoItems.recent_info_items,
+    long_term_info_items: infoItems.long_term_info_items,
+    info_source_errors: infoItems.info_source_errors,
     stats: {
       ok_count: funds.filter((item) => item.decision_status === "ok").length,
       cautious_count: funds.filter((item) => item.decision_status === "cautious").length,
