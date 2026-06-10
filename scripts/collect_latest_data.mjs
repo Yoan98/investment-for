@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const DEFAULT_TIMEZONE = "Asia/Shanghai";
-const DEFAULT_OUT = path.join("reports", "latest-data.json");
+const DEFAULT_OUT = path.join("reports", "latest", "data.json");
 
 const FUND_CONFIG = [
   {
@@ -13,21 +13,21 @@ const FUND_CONFIG = [
     role: "半导体核心配置",
     estimateUrl: "https://fundgz.1234567.com.cn/js/012552.js",
     officialNavUrl:
-      "https://api.fund.eastmoney.com/f10/lsjz?fundCode=012552&pageIndex=1&pageSize=20",
+      "https://api.fund.eastmoney.com/f10/lsjz?fundCode=012552&pageIndex=1&pageSize=40",
     underlying: {
       type: "basket",
       label: "前十大持仓等权实时篮子",
-      secids: [
-        "1.688041",
-        "0.002371",
-        "1.688981",
-        "1.688256",
-        "1.603986",
-        "1.688008",
-        "1.688012",
-        "1.603501",
-        "1.688521",
-        "1.688525",
+      quoteSymbols: [
+        "sh688041",
+        "sz002371",
+        "sh688981",
+        "sh688256",
+        "sh603986",
+        "sh688008",
+        "sh688012",
+        "sh603501",
+        "sh688521",
+        "sh688525",
       ],
     },
   },
@@ -37,21 +37,21 @@ const FUND_CONFIG = [
     role: "半导体设备弹性仓",
     estimateUrl: "https://fundgz.1234567.com.cn/js/021532.js",
     officialNavUrl:
-      "https://api.fund.eastmoney.com/f10/lsjz?fundCode=021532&pageIndex=1&pageSize=20",
+      "https://api.fund.eastmoney.com/f10/lsjz?fundCode=021532&pageIndex=1&pageSize=40",
     underlying: {
       type: "basket",
       label: "前十大设备持仓等权实时篮子",
-      secids: [
-        "1.688012",
-        "0.002371",
-        "1.688072",
-        "0.300604",
-        "1.688120",
-        "1.688126",
-        "1.688361",
-        "0.300346",
-        "1.688019",
-        "0.300666",
+      quoteSymbols: [
+        "sh688012",
+        "sz002371",
+        "sh688072",
+        "sz300604",
+        "sh688120",
+        "sh688126",
+        "sh688361",
+        "sz300346",
+        "sh688019",
+        "sz300666",
       ],
     },
   },
@@ -61,11 +61,11 @@ const FUND_CONFIG = [
     role: "黄金防守仓",
     estimateUrl: "https://fundgz.1234567.com.cn/js/000218.js",
     officialNavUrl:
-      "https://api.fund.eastmoney.com/f10/lsjz?fundCode=000218&pageIndex=1&pageSize=20",
+      "https://api.fund.eastmoney.com/f10/lsjz?fundCode=000218&pageIndex=1&pageSize=40",
     underlying: {
-      type: "single_quote",
+      type: "tencent_quote",
       label: "黄金ETF国泰",
-      quoteSecid: "1.518800",
+      quoteSymbol: "sh518800",
     },
   },
 ];
@@ -74,6 +74,11 @@ const FRESHNESS_LIMITS = {
   intradayEstimateMinutes: 10,
   underlyingRealtimeMinutes: 5,
 };
+
+const FETCH_RETRY_ATTEMPTS = 5;
+const FETCH_RETRY_BASE_DELAY_MS = 400;
+const FUTURE_SKEW_TOLERANCE_MS = 60 * 1000;
+const TENCENT_BATCH_CHUNK_SIZE = 40;
 
 const CN_TRADE_WINDOWS = [
   [9 * 60 + 30, 11 * 60 + 30],
@@ -90,10 +95,34 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function todayInShanghai() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DEFAULT_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(new Date());
+}
+
 function toNumber(value) {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function chunkArray(items, size) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function parseChinaDateTime(value) {
@@ -103,6 +132,25 @@ function parseChinaDateTime(value) {
   );
   if (!match) return null;
   const [, year, month, day, hour, minute, second = "00"] = match;
+  return new Date(
+    Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour) - 8,
+      Number(minute),
+      Number(second)
+    )
+  );
+}
+
+function parseChinaCompactDateTime(value) {
+  if (!value) return null;
+  const match = value.match(
+    /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/
+  );
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match;
   return new Date(
     Date.UTC(
       Number(year),
@@ -176,11 +224,23 @@ function tradingMinutesBetween(startDate, endDate) {
   return Math.round(totalMinutes * 10) / 10;
 }
 
+function normalizeFutureSkew(startDate, endDate) {
+  if (!(startDate instanceof Date) || !(endDate instanceof Date)) return null;
+  const deltaMs = startDate.getTime() - endDate.getTime();
+  if (deltaMs <= 0) return { startDate, endDate };
+  if (deltaMs <= FUTURE_SKEW_TOLERANCE_MS) {
+    return { startDate: endDate, endDate };
+  }
+  return null;
+}
+
 function estimateFreshnessMinutes(dataTimeValue, fetchTimeIso) {
   const dataDate = parseChinaDateTime(dataTimeValue);
   const fetchDate = new Date(fetchTimeIso);
   if (!dataDate || Number.isNaN(fetchDate.getTime())) return null;
-  return tradingMinutesBetween(dataDate, fetchDate);
+  const normalized = normalizeFutureSkew(dataDate, fetchDate);
+  if (!normalized) return null;
+  return tradingMinutesBetween(normalized.startDate, normalized.endDate);
 }
 
 function parseEstimatePayload(text) {
@@ -198,32 +258,63 @@ function parseOfficialNavPayload(payload) {
   }
 
   const latest = list[0];
+  const latestNav = toNumber(latest.DWJZ);
+  const oneWeekBaseNav = toNumber(list[5]?.DWJZ);
+  const oneMonthBaseNav = toNumber(list[20]?.DWJZ);
   return {
-    nav: toNumber(latest.DWJZ),
+    nav: latestNav,
     accumulative_nav: toNumber(latest.LJJZ),
     nav_date: latest.FSRQ ?? null,
     daily_change_pct: toNumber(latest.JZZZL),
+    performance_1d_pct: toNumber(latest.JZZZL),
+    performance_1w_pct:
+      latestNav !== null && oneWeekBaseNav !== null
+        ? Math.round((latestNav / oneWeekBaseNav - 1) * 10000) / 100
+        : null,
+    performance_1m_pct:
+      latestNav !== null && oneMonthBaseNav !== null
+        ? Math.round((latestNav / oneMonthBaseNav - 1) * 10000) / 100
+        : null,
   };
 }
 
-function parseEastmoneyQuote(payload) {
-  const data = payload?.data;
-  if (!data) return null;
+function parseTencentQuote(text, labelOverride = null) {
+  const body = text.match(/="(.*)";?$/)?.[1];
+  if (!body) return null;
 
-  const timestampSeconds = toNumber(data.f124);
-  const quoteTimestampSeconds = toNumber(data.f86) ?? timestampSeconds;
-  const dataTime = quoteTimestampSeconds
-    ? new Date(quoteTimestampSeconds * 1000).toISOString()
-    : null;
-
+  const fields = body.split("~");
   return {
-    label: data.f58 ?? "实时代理",
-    price: toNumber(data.f43) !== null ? toNumber(data.f43) / 100 : null,
-    change_amount: toNumber(data.f169) !== null ? toNumber(data.f169) / 100 : null,
-    change_pct: toNumber(data.f170) !== null ? toNumber(data.f170) / 100 : null,
-    data_time: dataTime,
-    code: data.f57 ?? null,
+    label: labelOverride ?? fields[1] ?? "实时代理",
+    price: toNumber(fields[3]),
+    change_amount: toNumber(fields[31]),
+    change_pct: toNumber(fields[32]),
+    data_time: formatChinaIso(parseChinaCompactDateTime(fields[30])),
+    code: fields[2] ?? null,
   };
+}
+
+function parseTencentBatchQuotePayload(text) {
+  const quotes = new Map();
+  const linePattern = /v_([a-z0-9]+)="([^"]*)";?/gi;
+
+  for (const match of text.matchAll(linePattern)) {
+    const symbol = match[1];
+    const body = match[2];
+    const fields = body.split("~");
+    if (fields.length < 33) continue;
+
+    quotes.set(symbol, {
+      symbol,
+      label: fields[1] ?? symbol,
+      price: toNumber(fields[3]),
+      change_amount: toNumber(fields[31]),
+      change_pct: toNumber(fields[32]),
+      data_time: formatChinaIso(parseChinaCompactDateTime(fields[30])),
+      code: fields[2] ?? null,
+    });
+  }
+
+  return quotes;
 }
 
 function freshnessMinutes(dataTimeIso, fetchTimeIso) {
@@ -231,7 +322,9 @@ function freshnessMinutes(dataTimeIso, fetchTimeIso) {
   const startDate = new Date(dataTimeIso);
   const endDate = new Date(fetchTimeIso);
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
-  return tradingMinutesBetween(startDate, endDate);
+  const normalized = normalizeFutureSkew(startDate, endDate);
+  if (!normalized) return null;
+  return tradingMinutesBetween(normalized.startDate, normalized.endDate);
 }
 
 function isDirectionalMismatch(estimate, underlying) {
@@ -240,6 +333,77 @@ function isDirectionalMismatch(estimate, underlying) {
   if (estimatePct === null || underlyingPct === null) return false;
   if (Math.abs(estimatePct) < 0.3 || Math.abs(underlyingPct) < 0.3) return false;
   return Math.sign(estimatePct) !== Math.sign(underlyingPct);
+}
+
+function formatError(error) {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const parts = [error.name ? `${error.name}: ${error.message}` : error.message];
+  const causeCode = error.cause?.code;
+  const causeHost = error.cause?.hostname;
+  const causeStatus = error.cause?.statusCode;
+
+  if (causeCode) parts.push(`cause=${causeCode}`);
+  if (causeStatus) parts.push(`status=${causeStatus}`);
+  if (causeHost) parts.push(`host=${causeHost}`);
+
+  return parts.join(" | ");
+}
+
+function isRetryableError(error) {
+  const status = error?.status;
+  const causeCode = error?.cause?.code;
+  return (
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    causeCode === "ECONNRESET" ||
+    causeCode === "ETIMEDOUT" ||
+    causeCode === "UND_ERR_CONNECT_TIMEOUT" ||
+    causeCode === "UND_ERR_HEADERS_TIMEOUT" ||
+    causeCode === "UND_ERR_SOCKET"
+  );
+}
+
+async function fetchWithRetry(url, responseType, extraHeaders = {}) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= FETCH_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 Codex automation",
+          Referer: "https://fund.eastmoney.com/",
+          ...extraHeaders,
+        },
+      });
+
+      if (!response.ok) {
+        const error = new Error(`HTTP ${response.status} for ${url}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      if (responseType === "json") {
+        return response.json();
+      }
+      return response.text();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableError(error) || attempt >= FETCH_RETRY_ATTEMPTS) {
+        break;
+      }
+      await sleep(FETCH_RETRY_BASE_DELAY_MS * attempt);
+    }
+  }
+
+  throw lastError;
 }
 
 function buildDecisionStatus(estimate, underlying) {
@@ -283,29 +447,98 @@ function buildDecisionStatus(estimate, underlying) {
 }
 
 async function fetchText(url) {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 Codex automation",
-      Referer: "https://fund.eastmoney.com/",
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
-  }
-  return response.text();
+  return fetchWithRetry(url, "text");
 }
 
 async function fetchJson(url) {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 Codex automation",
-      Referer: "https://fund.eastmoney.com/",
-    },
+  return fetchWithRetry(url, "json");
+}
+
+async function fetchTencentText(url) {
+  return fetchWithRetry(url, "text", {
+    Referer: "https://gu.qq.com/",
   });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
+}
+
+async function fetchTencentBatchQuotes(symbols) {
+  const sourceUrl = `https://qt.gtimg.cn/q=${symbols.join(",")}`;
+  const text = await fetchTencentText(sourceUrl);
+  const quotes = parseTencentBatchQuotePayload(text);
+  if (quotes.size === 0) {
+    throw new Error(`tencent batch quote payload missing data for ${symbols.join(",")}`);
   }
-  return response.json();
+  return {
+    quotes,
+    sourceUrl,
+  };
+}
+
+function collectRequiredQuoteSymbols(funds) {
+  const required = new Set();
+
+  for (const fund of funds) {
+    if (fund.underlying?.type === "basket") {
+      for (const symbol of fund.underlying.quoteSymbols ?? []) {
+        required.add(symbol);
+      }
+    }
+
+    if (fund.underlying?.type === "tencent_quote" && fund.underlying.quoteSymbol) {
+      required.add(fund.underlying.quoteSymbol);
+    }
+  }
+
+  return Array.from(required);
+}
+
+async function collectRealtimeQuoteSnapshot(funds) {
+  const symbols = collectRequiredQuoteSymbols(funds);
+  const bySymbol = new Map();
+  const sourceUrls = [];
+  const symbolErrors = [];
+
+  for (const chunk of chunkArray(symbols, TENCENT_BATCH_CHUNK_SIZE)) {
+    try {
+      const { quotes, sourceUrl } = await fetchTencentBatchQuotes(chunk);
+      sourceUrls.push(sourceUrl);
+      for (const symbol of chunk) {
+        const quote = quotes.get(symbol);
+        if (quote) {
+          bySymbol.set(symbol, quote);
+        } else {
+          symbolErrors.push({
+            symbol,
+            error: `missing quote in batch response for ${symbol}`,
+          });
+        }
+      }
+      continue;
+    } catch (batchError) {
+      for (const symbol of chunk) {
+        try {
+          const { parsed, sourceUrl } = await fetchTencentUnderlyingQuote(symbol, symbol);
+          bySymbol.set(symbol, {
+            ...parsed,
+            symbol,
+          });
+          sourceUrls.push(sourceUrl);
+        } catch (singleError) {
+          symbolErrors.push({
+            symbol,
+            error: `${formatError(batchError)} || fallback=${formatError(singleError)}`,
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    fetch_time: nowIso(),
+    source_name: "腾讯行情接口",
+    source_urls: Array.from(new Set(sourceUrls)),
+    by_symbol: bySymbol,
+    symbol_errors: symbolErrors,
+  };
 }
 
 async function collectEstimate(fund) {
@@ -334,7 +567,7 @@ async function collectEstimate(fund) {
       type: "intraday_estimate",
       fetch_time: fetchTime,
       usable_for_today_decision: false,
-      error: String(error),
+      error: formatError(error),
       source_name: "天天基金估值接口",
       source_url: fund.estimateUrl,
     };
@@ -354,86 +587,114 @@ async function collectOfficialNav(fund) {
     return {
       source_name: "东方财富历史净值接口",
       source_url: fund.officialNavUrl,
-      error: String(error),
+      error: formatError(error),
     };
   }
 }
 
-async function fetchUnderlyingQuote(secid) {
-  const sourceUrl =
-    `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}` +
-    "&fields=f43,f57,f58,f86,f124,f169,f170";
-  const payload = await fetchJson(sourceUrl);
-  const parsed = parseEastmoneyQuote(payload);
+async function fetchTencentUnderlyingQuote(symbol, label) {
+  const sourceUrl = `https://qt.gtimg.cn/q=${symbol}`;
+  const text = await fetchTencentText(sourceUrl);
+  const parsed = parseTencentQuote(text, label);
+  if (!parsed) {
+    throw new Error(`tencent quote payload missing data for ${symbol}`);
+  }
   return {
     parsed,
     sourceUrl,
   };
 }
 
-async function collectSingleQuoteUnderlying(underlyingConfig) {
-  const fetchTime = nowIso();
+async function collectTencentQuoteUnderlying(underlyingConfig, quoteSnapshot) {
+  const fetchTime = quoteSnapshot.fetch_time;
+  const symbol = underlyingConfig.quoteSymbol;
+  const quote = quoteSnapshot.by_symbol.get(symbol);
+  const snapshotErrors = quoteSnapshot.symbol_errors
+    .filter((item) => item.symbol === symbol)
+    .map((item) => item.error);
 
-  try {
-    const { parsed, sourceUrl } = await fetchUnderlyingQuote(underlyingConfig.quoteSecid);
-    const freshness = freshnessMinutes(parsed?.data_time ?? null, fetchTime);
-
-    return {
-      ...parsed,
-      type: "single_quote_proxy",
-      fetch_time: fetchTime,
-      freshness_minutes: freshness,
-      usable_for_today_decision:
-        freshness !== null && freshness <= FRESHNESS_LIMITS.underlyingRealtimeMinutes,
-      source_name: "东财实时行情接口",
-      source_url: sourceUrl,
-    };
-  } catch (error) {
+  if (!symbol) {
     return {
       label: underlyingConfig.label ?? "实时代理",
-      type: "single_quote_proxy",
+      type: "tencent_quote_proxy",
       fetch_time: fetchTime,
       usable_for_today_decision: false,
-      error: String(error),
-      source_name: "东财实时行情接口",
+      error: "quote symbol not configured",
+      source_name: quoteSnapshot.source_name,
       source_url: null,
     };
   }
+
+  if (!quote) {
+    return {
+      label: underlyingConfig.label ?? "实时代理",
+      type: "tencent_quote_proxy",
+      fetch_time: fetchTime,
+      usable_for_today_decision: false,
+      error: snapshotErrors.join(" | ") || `quote missing for ${symbol}`,
+      source_name: quoteSnapshot.source_name,
+      source_url: quoteSnapshot.source_urls.find((url) => url.includes(symbol)) ?? null,
+    };
+  }
+
+  const freshness = freshnessMinutes(quote.data_time ?? null, fetchTime);
+
+  return {
+    ...quote,
+    label: underlyingConfig.label ?? quote.label,
+    type: "tencent_quote_proxy",
+    fetch_time: fetchTime,
+    freshness_minutes: freshness,
+    usable_for_today_decision:
+      freshness !== null && freshness <= FRESHNESS_LIMITS.underlyingRealtimeMinutes,
+    source_name: quoteSnapshot.source_name,
+    source_url: quoteSnapshot.source_urls.find((url) => url.includes(symbol)) ?? null,
+  };
 }
 
-async function collectBasketUnderlying(underlyingConfig) {
-  const fetchTime = nowIso();
-  const secids = Array.isArray(underlyingConfig.secids) ? underlyingConfig.secids : [];
+async function collectBasketUnderlying(underlyingConfig, quoteSnapshot) {
+  const fetchTime = quoteSnapshot.fetch_time;
+  const symbols = Array.isArray(underlyingConfig.quoteSymbols)
+    ? underlyingConfig.quoteSymbols
+    : [];
 
-  if (secids.length === 0) {
+  if (symbols.length === 0) {
     return {
       label: underlyingConfig.label ?? "实时篮子代理",
       type: "basket_proxy",
       fetch_time: fetchTime,
       usable_for_today_decision: false,
-      error: "basket secids not configured",
-      source_name: "东财实时行情接口",
+      error: "basket quote symbols not configured",
+      source_name: quoteSnapshot.source_name,
       source_url: null,
     };
   }
-
-  const settled = await Promise.allSettled(secids.map((secid) => fetchUnderlyingQuote(secid)));
+  const componentErrors = [];
   const components = [];
 
-  for (const [index, result] of settled.entries()) {
-    if (result.status === "fulfilled" && result.value?.parsed) {
-      const item = result.value.parsed;
+  for (const symbol of symbols) {
+    const quote = quoteSnapshot.by_symbol.get(symbol);
+    if (quote) {
       components.push({
-        secid: secids[index],
-        code: item.code,
-        label: item.label,
-        price: item.price,
-        change_amount: item.change_amount,
-        change_pct: item.change_pct,
-        data_time: item.data_time,
-        source_url: result.value.sourceUrl,
+        symbol,
+        code: quote.code,
+        label: quote.label,
+        price: quote.price,
+        change_amount: quote.change_amount,
+        change_pct: quote.change_pct,
+        data_time: quote.data_time,
+        source_url: quoteSnapshot.source_urls.find((url) => url.includes(symbol)) ?? null,
       });
+      continue;
     }
+
+    const errors = quoteSnapshot.symbol_errors
+      .filter((item) => item.symbol === symbol)
+      .map((item) => item.error);
+    componentErrors.push({
+      symbol,
+      error: errors.join(" | ") || `quote missing for ${symbol}`,
+    });
   }
 
   const usableComponents = components.filter((item) => toNumber(item.change_pct) !== null);
@@ -447,6 +708,7 @@ async function collectBasketUnderlying(underlyingConfig) {
     .at(-1) ?? null;
   const maxFreshness =
     componentFreshness.length > 0 ? Math.max(...componentFreshness) : null;
+  const minimumUsableComponents = Math.max(5, Math.ceil(symbols.length / 2));
   const averageChangePct =
     usableComponents.length > 0
       ? Math.round(
@@ -464,51 +726,53 @@ async function collectBasketUnderlying(underlyingConfig) {
     freshness_minutes: maxFreshness,
     component_count: components.length,
     usable_component_count: usableComponents.length,
-    composition_method: "equal_weight_top_holdings_proxy",
+    failed_component_count: componentErrors.length,
+    component_errors: componentErrors,
+    composition_method: "equal_weight_top_holdings_proxy_single_batch_snapshot",
     change_pct: averageChangePct,
     usable_for_today_decision:
-      usableComponents.length >= Math.max(5, Math.ceil(secids.length / 2)) &&
+      usableComponents.length >= minimumUsableComponents &&
       maxFreshness !== null &&
       maxFreshness <= FRESHNESS_LIMITS.underlyingRealtimeMinutes,
-    source_name: "东财实时行情接口",
-    source_url: "multiple eastmoney quote endpoints",
+    source_name: quoteSnapshot.source_name,
+    source_url: quoteSnapshot.source_urls.join(", "),
     components,
   };
 }
 
-async function collectUnderlying(fund) {
+async function collectUnderlying(fund, quoteSnapshot) {
   if (!fund.underlying?.type) {
     return {
       label: fund.underlying?.label ?? "未配置实时代理",
       usable_for_today_decision: false,
       error: "underlying realtime proxy not configured",
-      source_name: "东财实时行情接口",
+      source_name: quoteSnapshot?.source_name ?? "腾讯行情接口",
       source_url: null,
     };
   }
 
-  if (fund.underlying.type === "single_quote") {
-    return collectSingleQuoteUnderlying(fund.underlying);
+  if (fund.underlying.type === "tencent_quote") {
+    return collectTencentQuoteUnderlying(fund.underlying, quoteSnapshot);
   }
 
   if (fund.underlying.type === "basket") {
-    return collectBasketUnderlying(fund.underlying);
+    return collectBasketUnderlying(fund.underlying, quoteSnapshot);
   }
 
   return {
     label: fund.underlying?.label ?? "未识别实时代理",
     usable_for_today_decision: false,
     error: `unsupported underlying type: ${fund.underlying.type}`,
-    source_name: "东财实时行情接口",
+    source_name: quoteSnapshot?.source_name ?? "腾讯行情接口",
     source_url: null,
   };
 }
 
-async function collectFund(fund) {
+async function collectFund(fund, quoteSnapshot) {
   const [estimate, officialNav, underlyingRealtime] = await Promise.all([
     collectEstimate(fund),
     collectOfficialNav(fund),
-    collectUnderlying(fund),
+    collectUnderlying(fund, quoteSnapshot),
   ]);
 
   const decision = buildDecisionStatus(estimate, underlyingRealtime);
@@ -528,9 +792,12 @@ async function collectFund(fund) {
 
 async function main() {
   const outPath = getArg("--out", DEFAULT_OUT);
-  const reportDate = getArg("--date", new Date().toISOString().slice(0, 10));
+  const reportDate = getArg("--date", todayInShanghai());
 
-  const funds = await Promise.all(FUND_CONFIG.map(collectFund));
+  const quoteSnapshot = await collectRealtimeQuoteSnapshot(FUND_CONFIG);
+  const funds = await Promise.all(
+    FUND_CONFIG.map((fund) => collectFund(fund, quoteSnapshot))
+  );
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
