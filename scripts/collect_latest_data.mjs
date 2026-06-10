@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
+import { execFile } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import path from "node:path";
 
 const DEFAULT_TIMEZONE = "Asia/Shanghai";
@@ -79,6 +81,7 @@ const FETCH_RETRY_ATTEMPTS = 5;
 const FETCH_RETRY_BASE_DELAY_MS = 400;
 const FUTURE_SKEW_TOLERANCE_MS = 60 * 1000;
 const TENCENT_BATCH_CHUNK_SIZE = 40;
+const execFileAsync = promisify(execFile);
 
 const CN_TRADE_WINDOWS = [
   [9 * 60 + 30, 11 * 60 + 30],
@@ -371,17 +374,55 @@ function isRetryableError(error) {
   );
 }
 
+function shouldUseCurlFallback(error) {
+  const causeCode = error?.cause?.code;
+  return (
+    causeCode === "ENOTFOUND" ||
+    causeCode === "ECONNRESET" ||
+    causeCode === "ETIMEDOUT" ||
+    causeCode === "UND_ERR_CONNECT_TIMEOUT" ||
+    causeCode === "UND_ERR_HEADERS_TIMEOUT" ||
+    causeCode === "UND_ERR_SOCKET"
+  );
+}
+
+async function fetchViaCurl(url, responseType, headers) {
+  const args = [
+    "--silent",
+    "--show-error",
+    "--location",
+    "--max-time",
+    "20",
+  ];
+
+  for (const [name, value] of Object.entries(headers)) {
+    args.push("--header", `${name}: ${value}`);
+  }
+
+  args.push(url);
+
+  const { stdout } = await execFileAsync("curl", args, {
+    maxBuffer: 10 * 1024 * 1024,
+  });
+
+  if (responseType === "json") {
+    return JSON.parse(stdout);
+  }
+  return stdout;
+}
+
 async function fetchWithRetry(url, responseType, extraHeaders = {}) {
   let lastError = null;
+  const headers = {
+    "User-Agent": "Mozilla/5.0 Codex automation",
+    Referer: "https://fund.eastmoney.com/",
+    ...extraHeaders,
+  };
 
   for (let attempt = 1; attempt <= FETCH_RETRY_ATTEMPTS; attempt += 1) {
     try {
       const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 Codex automation",
-          Referer: "https://fund.eastmoney.com/",
-          ...extraHeaders,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -396,6 +437,13 @@ async function fetchWithRetry(url, responseType, extraHeaders = {}) {
       return response.text();
     } catch (error) {
       lastError = error;
+      if (shouldUseCurlFallback(error)) {
+        try {
+          return await fetchViaCurl(url, responseType, headers);
+        } catch (curlError) {
+          lastError = curlError;
+        }
+      }
       if (!isRetryableError(error) || attempt >= FETCH_RETRY_ATTEMPTS) {
         break;
       }

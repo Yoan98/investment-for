@@ -299,40 +299,57 @@ function buildEventItems(funds) {
   const equip = funds.find((item) => item.code === "021532");
   const gold = funds.find((item) => item.code === "000218");
 
+  function buildRecentItem(fund, impact, successTitle, blockedTitle, successWhy, blockedWhy) {
+    const estimateUsable = fund?.intraday_estimate?.usable_for_today_decision;
+    const underlyingUsable = fund?.underlying_realtime?.usable_for_today_decision;
+    const hasRealtime = estimateUsable || underlyingUsable;
+
+    return {
+      title: hasRealtime ? successTitle : blockedTitle,
+      impact,
+      time: formatDecisionTime(
+        fund?.decision_feed?.data_time ??
+          fund?.intraday_estimate?.data_time ??
+          fund?.underlying_realtime?.data_time
+      ),
+      source: "天天基金估值接口 / 实时代理行情接口",
+      credibility: hasRealtime ? "中高" : "中",
+      fact: hasRealtime
+        ? `${fund?.code} 盘中估值 ${formatPercent(
+            fund?.intraday_estimate?.change_pct
+          )}，实时代理 ${formatPercent(fund?.underlying_realtime?.change_pct)}。`
+        : `${fund?.code} 本次未拿到可用于当天判断的实时数据；估值错误：${
+            fund?.intraday_estimate?.error ?? "无"
+          }；代理错误：${fund?.underlying_realtime?.error ?? "无"}。`,
+      why: hasRealtime ? successWhy : blockedWhy,
+    };
+  }
+
   return [
-    {
-      title: "012552 盘中估值已能和实时持仓篮子交叉校验。",
-      impact: "半导体",
-      time: formatDecisionTime(core?.intraday_estimate?.data_time),
-      source: "天天基金估值接口 / 实时代理行情接口",
-      credibility: "中高",
-      fact: `012552 盘中估值 ${formatPercent(
-        core?.intraday_estimate?.change_pct
-      )}，实时篮子代理 ${formatPercent(core?.underlying_realtime?.change_pct)}。`,
-      why: "这说明核心宽基仓今天的判断不再依赖过时页面净值，可以按当天节奏看待。",
-    },
-    {
-      title: "021532 的设备链实时代理与估值方向一致。",
-      impact: "半导体设备",
-      time: formatDecisionTime(equip?.intraday_estimate?.data_time),
-      source: "天天基金估值接口 / 实时代理行情接口",
-      credibility: "中高",
-      fact: `021532 盘中估值 ${formatPercent(
-        equip?.intraday_estimate?.change_pct
-      )}，实时篮子代理 ${formatPercent(equip?.underlying_realtime?.change_pct)}。`,
-      why: "设备方向弹性高，但今天的实时代理和估值没有打架，说明可以保守参考当天方向。",
-    },
-    {
-      title: "000218 的黄金估值和底层黄金 ETF 基本同步。",
-      impact: "黄金",
-      time: formatDecisionTime(gold?.intraday_estimate?.data_time),
-      source: "天天基金估值接口 / 实时代理行情接口",
-      credibility: "中高",
-      fact: `000218 盘中估值 ${formatPercent(
-        gold?.intraday_estimate?.change_pct
-      )}，黄金ETF国泰代理 ${formatPercent(gold?.underlying_realtime?.change_pct)}。`,
-      why: "这意味着黄金的当天弱势是真实存在的，不应再用旧净值误判为已经企稳。",
-    },
+    buildRecentItem(
+      core,
+      "半导体",
+      "012552 盘中估值已能和实时持仓篮子交叉校验。",
+      "012552 今天未拿到可核验的实时估值与代理。",
+      "这说明核心宽基仓今天的判断不再依赖过时页面净值，可以按当天节奏看待。",
+      "这意味着今天不能根据 012552 给出节奏建议，否则会把旧数据或空数据误当成当天判断依据。 "
+    ),
+    buildRecentItem(
+      equip,
+      "半导体设备",
+      "021532 的设备链实时代理与估值方向一致。",
+      "021532 今天未拿到可核验的设备链实时数据。",
+      "设备方向弹性高，但今天的实时代理和估值没有打架，说明可以保守参考当天方向。",
+      "设备方向本来就波动大，缺少实时校验时更不能放大动作，只能保留长期逻辑。"
+    ),
+    buildRecentItem(
+      gold,
+      "黄金",
+      "000218 的黄金估值和底层黄金 ETF 基本同步。",
+      "000218 今天未拿到可核验的黄金实时数据。",
+      "这意味着黄金的当天弱势是真实存在的，不应再用旧净值误判为已经企稳。",
+      "黄金当天方向无法确认时，只能继续把它当防守仓处理，不能根据盘中节奏做加减仓判断。"
+    ),
   ];
 }
 
