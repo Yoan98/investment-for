@@ -3,70 +3,110 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2026-06-10 半导体与黄金基金最新报告</title>
+  <title>2026-06-11 长期投资基金日报</title>
   <style>
     :root {
-      --bg: #f6f1e8;
-      --paper: #fffdf8;
-      --ink: #213036;
-      --muted: #65727a;
-      --line: #ddd4c6;
-      --ok: #1e6a39;
-      --warn: #9b6400;
-      --bad: #b13c2e;
-      --chip: #0d695d;
-      --gold: #a87519;
-      --shadow: 0 16px 42px rgba(59, 41, 21, 0.10);
+      --page: #f4f7f5;
+      --paper: #ffffff;
+      --ink: #172126;
+      --muted: #5f6c72;
+      --line: #d8e0dd;
+      --good: #176b4a;
+      --watch: #9b6b12;
+      --stop: #b13a32;
+      --blue: #245d8f;
+      --shadow: 0 18px 44px rgba(23, 33, 38, 0.08);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       color: var(--ink);
       background:
-        radial-gradient(circle at top left, rgba(13, 105, 93, 0.12), transparent 28rem),
-        radial-gradient(circle at top right, rgba(168, 117, 25, 0.12), transparent 30rem),
-        linear-gradient(180deg, #f7f2e9 0%, #f1e8da 100%);
+        linear-gradient(180deg, #edf4f0 0%, var(--page) 38%, #eef2f5 100%);
       font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
-      line-height: 1.7;
+      line-height: 1.72;
     }
-    main { width: min(1120px, calc(100% - 28px)); margin: 24px auto 52px; }
+    main { width: min(1120px, calc(100% - 28px)); margin: 26px auto 56px; }
     section {
-      background: rgba(255, 253, 248, 0.94);
-      border: 1px solid var(--line);
-      border-radius: 26px;
-      box-shadow: var(--shadow);
+      margin: 0 0 22px;
       padding: 24px;
-      margin-bottom: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
     }
-    h1, h2, h3, p { margin-top: 0; }
-    h1 { font-size: clamp(28px, 4vw, 44px); line-height: 1.12; margin-bottom: 12px; }
-    h2 { font-size: clamp(22px, 2.6vw, 30px); margin-bottom: 14px; }
-    .meta-row, .summary-grid, .actions, .event-grid { display: grid; gap: 14px; }
-    .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
-    .meta-pill, .summary-card, .action-card, .event-card { border: 1px solid var(--line); border-radius: 20px; background: var(--paper); }
-    .meta-pill { padding: 10px 12px; color: var(--muted); font-size: 14px; }
-    .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
-    .summary-card { padding: 18px; }
-    .summary-card.chip { border-top: 5px solid var(--chip); }
-    .summary-card.gold { border-top: 5px solid var(--gold); }
-    .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
-    .action-card { padding: 18px; }
-    .card-head { display: flex; align-items: start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-    .badge { border-radius: 999px; padding: 4px 10px; color: white; font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .badge.ok { background: var(--ok); }
-    .badge.warn { background: var(--warn); }
-    .badge.bad { background: var(--bad); }
-    .muted, .meta { color: var(--muted); font-size: 14px; }
-    .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .event-card { padding: 18px; }
-    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); }
+    h1, h2, h3, h4, p { margin-top: 0; }
+    h1 { max-width: 880px; font-size: clamp(30px, 4vw, 46px); line-height: 1.16; margin-bottom: 12px; }
+    h2 { font-size: clamp(22px, 2.4vw, 30px); margin-bottom: 14px; }
+    h3 { font-size: 19px; margin-bottom: 8px; }
+    h4 { font-size: 15px; margin: 14px 0 8px; }
+    a { color: var(--blue); }
+    ul { margin: 0; padding-left: 20px; }
+    li + li { margin-top: 5px; }
+    .meta-row, .thesis-grid, .window-grid, .action-list, .info-grid { display: grid; gap: 14px; }
+    .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
+    .meta-pill {
+      border-left: 4px solid var(--blue);
+      background: #f7faf9;
+      padding: 10px 12px;
+      color: var(--muted);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .section-note, .muted, .meta { color: var(--muted); }
+    .meta, .section-note { font-size: 14px; }
+    .topline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge.good { background: var(--good); }
+    .badge.watch { background: var(--watch); }
+    .badge.stop { background: var(--stop); }
+    .thesis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .thesis-card, .plain-panel, .action-card, .info-card {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .window-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .action-list { grid-template-columns: 1fr; }
+    .action-card { border-left: 5px solid var(--blue); }
+    .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+    .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
     table { width: 100%; border-collapse: collapse; min-width: 980px; font-size: 14px; }
     th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-    th { background: #efe6d8; }
+    th { background: #e9efed; }
     tr:last-child td { border-bottom: 0; }
+    .footer-note p:last-child { margin-bottom: 0; }
     @media (max-width: 780px) {
-      .meta-row, .summary-grid, .actions, .event-grid { grid-template-columns: 1fr; }
       main { width: min(100% - 18px, 1120px); margin-top: 12px; }
+      section { padding: 18px; border-radius: 12px; }
+      .meta-row, .thesis-grid, .window-grid, .info-grid, .action-grid { grid-template-columns: 1fr; }
+      .card-head { flex-direction: column; }
     }
   </style>
 </head>
@@ -74,90 +114,212 @@
 <main>
   <section>
     <div class="meta-row">
-      <div class="meta-pill">数据可信度：100%</div>
-      <div class="meta-pill">实时覆盖：3/3 基金实时决策链路完整</div>
-      <div class="meta-pill">抓取时间：2026-06-10 17:30:42 CST</div>
-      <div class="meta-pill">新鲜程度：最旧实时数据 <1 分钟</div>
+      <div class="meta-pill">抓取时间：2026-06-11 17:08:35 CST</div>
+      <div class="meta-pill">数据质量：完整 / 100%</div>
+      <div class="meta-pill">实时覆盖：3/3</div>
+      <div class="meta-pill">最旧实时数据：&lt;1 分钟</div>
     </div>
-    <h1>半导体继续小额分批，黄金维持防守仓，不主动追补</h1>
-    <p class="muted">设备链弹性仍强于核心仓，但不适合追尖峰；黄金弱势已经被联接基金估值和底层 ETF 代理同时确认。</p>
-    <div class="summary-grid">
-      <article class="summary-card chip">
-        <h2>半导体今天怎么看</h2>
-        <p>核心宽基估值 -0.87%、设备仓估值 +2.45%，说明半导体内部仍在分化；核心仓更适合按计划慢慢买，设备仓可以参考强势，但不能追高。代理对照分别是 -0.19% 和 +2.26%。</p>
-      </article>
-      <article class="summary-card gold">
-        <h2>黄金今天怎么看</h2>
-        <p>黄金盘中估值 -3.11%，ETF 代理 -2.97%，弱势是被确认过的；所以今天更像防守仓承压，不适合因为一次下跌就激进补仓。</p>
-      </article>
+    <div class="topline">
+      <span class="badge good">继续成立</span>
+      <span>长期逻辑总状态</span>
     </div>
-    <h2 style="margin-top:18px;">今日操作建议</h2>
-    <p class="muted">今天可以给到具体基金建议，但只适合小额、分批、不追涨。</p>
-    <div class="actions">
-              <article class="action-card">
-                <div class="card-head">
-                  <strong>012552 天弘芯片产业ETF联接A</strong>
-                  <span class="badge ok">可操作</span>
-                </div>
-                <p><b>建议：</b>按原计划小额分批</p>
-                <p><b>节奏：</b>不放大单笔，不把盘中轻微波动当趋势确认。</p>
-                <p><b>原因：</b>核心半导体确实回落，但回落幅度还像正常震荡，不像趋势转弱，继续按计划小额分批更合适。</p>
-                <p class="muted"><b>证据：</b>估值 -0.87%（2026-06-10 15:00），代理 -0.19%（2026-06-10 16:14:58）。</p>
-              </article>
-            
-              <article class="action-card">
-                <div class="card-head">
-                  <strong>021532 天弘半导体设备指数A</strong>
-                  <span class="badge ok">可操作</span>
-                </div>
-                <p><b>建议：</b>可小额靠近，但比核心仓更慢</p>
-                <p><b>节奏：</b>设备链弹性高，允许参考方向，但不能追情绪尖峰。</p>
-                <p><b>原因：</b>设备链弹性明显更强，但强势板块也最容易放大利润回吐，所以只能比核心仓更慢地靠近。</p>
-                <p class="muted"><b>证据：</b>估值 +2.45%（2026-06-10 15:00），代理 +2.26%（2026-06-10 16:14:58）。</p>
-              </article>
-            
-              <article class="action-card">
-                <div class="card-head">
-                  <strong>000218 国泰黄金ETF联接A</strong>
-                  <span class="badge ok">可操作</span>
-                </div>
-                <p><b>建议：</b>只保留防守仓，不主动追补</p>
-                <p><b>节奏：</b>黄金更多承担组合对冲，不承担追涨任务。</p>
-                <p><b>原因：</b>黄金弱势被联接基金估值和 ETF 代理同时确认，今天更适合把它当防守仓承压，而不是抄底仓。</p>
-                <p class="muted"><b>证据：</b>估值 -3.11%（2026-06-10 15:30），代理 -2.97%（2026-06-10 16:14:49）。</p>
-              </article>
-            </div>
+    <h1>长期逻辑未变，今天只决定执行节奏</h1>
+    <p><b>今日执行：</b>012552 按原计划执行；021532 半额执行；000218 仅观察</p>
+    <p class="section-note"><b>一句话原因：</b>长期配置逻辑先于盘中涨跌；今天的新鲜数据只用于过滤执行节奏。</p>
   </section>
+
+  <section>
+    <h2>长期逻辑复核</h2>
+    <div class="thesis-grid">
+      
+    <article class="thesis-card">
+      <div class="card-head">
+        <h3>半导体长期逻辑</h3>
+        <span class="badge good">继续成立</span>
+      </div>
+      <p>AI 算力、先进存储和国产替代仍是 6-24 个月主线，今天的盘中波动只影响是否按计划执行。</p>
+      <h4>观察项</h4>
+      <ul><li>AI 算力需求是否继续带动先进制程、存储和封测景气。</li><li>国产设备和材料替代是否仍有订单与政策支撑。</li><li>如果出口管制或行业周期数据明显转弱，核心仓需要重新评估。</li></ul>
+    </article>
+  
+      
+    <article class="thesis-card">
+      <div class="card-head">
+        <h3>黄金长期逻辑</h3>
+        <span class="badge good">继续成立</span>
+      </div>
+      <p>央行购金和实物需求仍提供长期支撑，黄金在组合里继续承担防守和分散波动的角色。</p>
+      <h4>观察项</h4>
+      <ul><li>美元和美债实际利率是否持续压制金价。</li><li>央行购金和 ETF 资金流是否延续支撑。</li><li>若组合防守仓比例已经足够，黄金不需要因短线波动追补。</li></ul>
+    </article>
+  
+    </div>
+  </section>
+
+  
+    <section>
+      <h2>今日执行判断</h2>
+      <div class="window-grid">
+        <article class="plain-panel">
+          <h3>今天先判断执行，不重判长期方向</h3>
+          <p>长期逻辑决定是否继续配置，盘中估算和底层代理只决定今天是否按计划执行、减半、靠近或暂停。</p>
+        </article>
+        <article class="plain-panel">
+          <h3>可以输出执行节奏</h3>
+          <p>三只基金同时具备新鲜盘中估算和底层实时代理，可以判断是否执行原计划。</p>
+        </article>
+      </div>
+    </section>
+  
+
+  <section>
+    <h2>具体基金行动卡</h2>
+    <div class="action-list">
+        <article class="action-card">
+          <div class="card-head">
+            <div>
+              <h3>012552 天弘芯片产业ETF联接A</h3>
+              <p class="muted">半导体核心配置</p>
+            </div>
+            <span class="badge good">按原计划执行</span>
+          </div>
+          <div class="action-grid">
+            <p><b>执行幅度：</b>正常计划金额</p>
+            <p><b>节奏：</b>按既定定投或分批计划执行，不临时放大。</p>
+          </div>
+          <p><b>原因：</b>核心半导体长期逻辑未变，今天盘中位置没有明显追高或恐慌特征。</p>
+          <h4>证据</h4>
+          <ul><li>盘中估算 +0.66%，时间 2026-06-11 15:00</li><li>底层代理 +0.71%，时间 2026-06-11 16:15:00</li><li>正式净值 1.5437，日期 2026-06-10，近 1 日 下跌 -0.84%</li></ul>
+          <h4>停止条件</h4>
+          <ul><li>若盘中快速拉升到明显追高区间，改为半额执行。</li></ul>
+        </article>
+      
+        <article class="action-card">
+          <div class="card-head">
+            <div>
+              <h3>021532 天弘半导体设备指数A</h3>
+              <p class="muted">半导体设备弹性仓</p>
+            </div>
+            <span class="badge watch">半额执行</span>
+          </div>
+          <div class="action-grid">
+            <p><b>执行幅度：</b>计划金额减半</p>
+            <p><b>节奏：</b>设备仓只慢慢靠近，不追强势尖峰。</p>
+          </div>
+          <p><b>原因：</b>设备链长期逻辑未变，但弹性仓今天涨幅较大，追高后的回撤风险高于核心仓。</p>
+          <h4>证据</h4>
+          <ul><li>盘中估算 +5.22%，时间 2026-06-11 15:00</li><li>底层代理 +5.78%，时间 2026-06-11 16:14:58</li><li>正式净值 2.9379，日期 2026-06-10，近 1 日 上涨 +2.33%</li></ul>
+          <h4>停止条件</h4>
+          <ul><li>若设备代理涨幅继续扩大，剩余买入推迟。</li></ul>
+        </article>
+      
+        <article class="action-card">
+          <div class="card-head">
+            <div>
+              <h3>000218 国泰黄金ETF联接A</h3>
+              <p class="muted">黄金防守仓</p>
+            </div>
+            <span class="badge watch">仅观察</span>
+          </div>
+          <div class="action-grid">
+            <p><b>执行幅度：</b>不主动追补</p>
+            <p><b>节奏：</b>维持防守仓定位，等正式净值和宏观信号复核。</p>
+          </div>
+          <p><b>原因：</b>黄金今天明显承压，但防守仓不应因为单日下跌自动补仓，先看美元、美债和实际利率压力是否延续。</p>
+          <h4>证据</h4>
+          <ul><li>盘中估算 -2.14%，时间 2026-06-11 15:30</li><li>底层代理 -2.66%，时间 2026-06-11 16:14:50</li><li>正式净值 3.3099，日期 2026-06-10，近 1 日 下跌 -3.12%</li></ul>
+          <h4>停止条件</h4>
+          <ul><li>若美元或实际利率继续上行，不把下跌视为补仓信号。</li></ul>
+        </article>
+      </div>
+  </section>
+
+  
+    <section>
+      <h2>正式净值复核</h2>
+      <p class="section-note">这一层只复核前一交易日结果，不覆盖今天的执行结论。</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>基金代码</th>
+              <th>基金名称</th>
+              <th>角色</th>
+              <th>最新正式净值</th>
+              <th>近 1 日</th>
+              <th>近 1 周</th>
+              <th>近 1 月</th>
+              <th>复核结论</th>
+            </tr>
+          </thead>
+          <tbody>
+      <tr>
+        <td>012552</td>
+        <td>天弘芯片产业ETF联接A</td>
+        <td>半导体核心配置</td>
+        <td>1.5437 / 2026-06-10</td>
+        <td>下跌 -0.84%</td>
+        <td>下跌 -3.49%</td>
+        <td>未知</td>
+        <td>最新正式净值 1.5437（2026-06-10），近 1 日 下跌 -0.84%，近 1 周 下跌 -3.49%。</td>
+      </tr>
+    
+      <tr>
+        <td>021532</td>
+        <td>天弘半导体设备指数A</td>
+        <td>半导体设备弹性仓</td>
+        <td>2.9379 / 2026-06-10</td>
+        <td>上涨 +2.33%</td>
+        <td>上涨 +7.51%</td>
+        <td>未知</td>
+        <td>最新正式净值 2.9379（2026-06-10），近 1 日 上涨 +2.33%，近 1 周 上涨 +7.51%。</td>
+      </tr>
+    
+      <tr>
+        <td>000218</td>
+        <td>国泰黄金ETF联接A</td>
+        <td>黄金防守仓</td>
+        <td>3.3099 / 2026-06-10</td>
+        <td>下跌 -3.12%</td>
+        <td>下跌 -5.92%</td>
+        <td>未知</td>
+        <td>最新正式净值 3.3099（2026-06-10），近 1 日 下跌 -3.12%，近 1 周 下跌 -5.92%。</td>
+      </tr>
+    </tbody>
+        </table>
+      </div>
+    </section>
+  
 
   <section>
     <h2>原始信息层</h2>
     <h3>近期信息</h3>
-    <div class="event-grid">
-      <article class="event-card">
-        <p><strong>WSTS 上调 2026 年全球半导体市场规模预期</strong></p>
+    <div class="info-grid">
+      <article class="info-card">
+        <h3>WSTS 上调 2026 年全球半导体市场规模预期</h3>
         <p class="meta">影响对象：半导体｜时间：2026-06-02｜来源：<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">WSTS</a>｜可信度：高</p>
         <p><b>原始信息：</b>WSTS 在最新春季预测中写明，2026 年全球半导体市场预计同比增长 90% ，达到 1.51 万亿美元。</p>
         <p><b>可能影响：</b>这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</p>
       </article>
     
-      <article class="event-card">
-        <p><strong>中国 5 月官方黄金储备继续增加</strong></p>
+      <article class="info-card">
+        <h3>中国 5 月官方黄金储备继续增加</h3>
         <p class="meta">影响对象：黄金｜时间：2026-06-07｜来源：<a href="https://www.safe.gov.cn/safe/2026/0206/27116.html" target="_blank" rel="noreferrer">SAFE</a>｜可信度：高</p>
         <p><b>原始信息：</b>国家外汇管理局公布的官方储备资产显示，2026 年 5 月黄金储备为 7496 万盎司，高于 2026 年 4 月的 7464 万盎司；按美元计的黄金储备价值为 3407.52 亿美元。</p>
         <p><b>可能影响：</b>央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</p>
       </article>
     </div>
     <h3 style="margin-top:20px;">长期信息</h3>
-    <div class="event-grid">
-      <article class="event-card">
-        <p><strong>AI 基础设施和 HBM 仍是半导体长期驱动</strong></p>
+    <div class="info-grid">
+      <article class="info-card">
+        <h3>AI 基础设施和 HBM 仍是半导体长期驱动</h3>
         <p class="meta">影响对象：半导体｜时间：2026-06-02｜来源：<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">WSTS</a>｜可信度：高</p>
         <p><b>原始信息：</b>WSTS 指出，2026 年存储器预计同比增长约 250% ，规模超过 800 十亿美元；2027 年全球半导体市场还预计继续增长 27% 至约 1.9 万亿美元。</p>
         <p><b>可能影响：</b>长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。</p>
       </article>
     
-      <article class="event-card">
-        <p><strong>WGC 季报显示黄金长期需求仍有央行与实物投资支撑</strong></p>
+      <article class="info-card">
+        <h3>WGC 季报显示黄金长期需求仍有央行与实物投资支撑</h3>
         <p class="meta">影响对象：黄金｜时间：2026-04-29｜来源：<a href="https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026" target="_blank" rel="noreferrer">World Gold Council</a>｜可信度：高</p>
         <p><b>原始信息：</b>世界黄金协会 Q1 2026 季报显示，全球黄金总需求同比小幅升至 1,231 吨，总价值创 1930 亿美元新高；金条金币投资推动需求增长，ETF 买盘放缓，但央行仍保持较大买入力度。</p>
         <p><b>可能影响：</b>黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。</p>
@@ -165,85 +327,11 @@
     </div>
   </section>
 
-  <section>
-    <h2>当前已买基金信息一览</h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>基金代码</th>
-            <th>基金名称</th>
-            <th>基金角色</th>
-            <th>当天决策数据</th>
-            <th>决策数据时间</th>
-            <th>是否新鲜</th>
-            <th>最新正式净值</th>
-            <th>近 1 日</th>
-            <th>近 1 周</th>
-            <th>近 1 月</th>
-            <th>短期判断</th>
-            <th>长期逻辑判断</th>
-            <th>支持依据</th>
-          </tr>
-        </thead>
-        <tbody>
-      <tr>
-        <td>012552</td>
-        <td>天弘芯片产业ETF联接A</td>
-        <td>半导体核心配置</td>
-        <td>下跌 -0.87%</td>
-        <td>2026-06-10 15:00</td>
-        <td>是</td>
-        <td>1.5567 / 2026-06-09</td>
-        <td>上涨 +4.84%</td>
-        <td>上涨 +0.43%</td>
-        <td>未知</td>
-        <td>当天数据可直接参考</td>
-        <td>长期逻辑未改，仍按 半导体核心配置 看待。</td>
-        <td>实时代理类型：basket_proxy；代理涨跌 -0.19%。</td>
-      </tr>
-    
-      <tr>
-        <td>021532</td>
-        <td>天弘半导体设备指数A</td>
-        <td>半导体设备弹性仓</td>
-        <td>上涨 +2.45%</td>
-        <td>2026-06-10 15:00</td>
-        <td>是</td>
-        <td>2.8711 / 2026-06-09</td>
-        <td>上涨 +7.54%</td>
-        <td>上涨 +7.68%</td>
-        <td>未知</td>
-        <td>当天数据可直接参考</td>
-        <td>长期逻辑未改，仍按 半导体设备弹性仓 看待。</td>
-        <td>实时代理类型：basket_proxy；代理涨跌 +2.26%。</td>
-      </tr>
-    
-      <tr>
-        <td>000218</td>
-        <td>国泰黄金ETF联接A</td>
-        <td>黄金防守仓</td>
-        <td>下跌 -3.11%</td>
-        <td>2026-06-10 15:30</td>
-        <td>是</td>
-        <td>3.4164 / 2026-06-09</td>
-        <td>上涨 +0.39%</td>
-        <td>下跌 -4.27%</td>
-        <td>未知</td>
-        <td>当天数据可直接参考</td>
-        <td>长期逻辑未改，仍按 黄金防守仓 看待。</td>
-        <td>实时代理类型：tencent_quote_proxy；代理涨跌 -2.97%。</td>
-      </tr>
-    </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>补充说明</h2>
-    <p><b>信息来源摘要：</b>当天主判断来自天天基金估值接口与实时代理行情接口；正式确认层来自东方财富历史净值接口；原始信息层使用已复核的 WSTS、World Gold Council 与 SAFE 官方公开来源。</p>
-    <p><b>不确定性说明：</b>半导体两只基金的代理并非基金官方实时净值，而是前十大持仓等权实时篮子，因此它更适合做当天方向校验，不适合替代正式净值做长期收益统计。黄金代理使用黄金 ETF 实时行情，适合判断当天方向，但同样不替代基金收盘确认值。</p>
-    <p><b>数据异常说明：</b>本次未触发数据降级，且原始信息层抓取正常。</p>
+  <section class="footer-note">
+    <h2>来源与不确定性</h2>
+    <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；正式净值复核来自东方财富历史净值接口；原始信息层来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
+    <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤今天执行节奏，不能替代正式净值或长期基本面判断。</p>
+    <p><b>数据缺口：</b>本次未发现关键数据抓取缺口。</p>
   </section>
 </main>
 </body>

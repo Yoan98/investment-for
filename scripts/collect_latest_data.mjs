@@ -128,6 +128,21 @@ function roundToTwo(value) {
   return Math.round(parsed * 100) / 100;
 }
 
+function formatPercent(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return "未知";
+  const sign = parsed > 0 ? "+" : "";
+  return `${sign}${parsed.toFixed(2)}%`;
+}
+
+function changeWord(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return "未知";
+  if (parsed > 0) return `上涨 ${formatPercent(parsed)}`;
+  if (parsed < 0) return `下跌 ${formatPercent(parsed)}`;
+  return `持平 ${formatPercent(parsed)}`;
+}
+
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -259,6 +274,27 @@ function formatChinaIso(date) {
   return date.toISOString();
 }
 
+function formatChinaDisplay(value) {
+  if (!value) return "未知";
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) {
+    return value;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: DEFAULT_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replace(/\//g, "-");
+}
+
 function chinaDateParts(date) {
   const offsetMs = 8 * 60 * 60 * 1000;
   const local = new Date(date.getTime() + offsetMs);
@@ -275,11 +311,6 @@ function chinaDateParts(date) {
 function isChinaTradingDay(date) {
   const { weekday } = chinaDateParts(date);
   return weekday >= 1 && weekday <= 5;
-}
-
-function minuteOfDayInChina(date) {
-  const parts = chinaDateParts(date);
-  return parts.hour * 60 + parts.minute;
 }
 
 function tradingMinutesBetween(startDate, endDate) {
@@ -418,14 +449,6 @@ function freshnessMinutes(dataTimeIso, fetchTimeIso) {
   return tradingMinutesBetween(normalized.startDate, normalized.endDate);
 }
 
-function isDirectionalMismatch(estimate, underlying) {
-  const estimatePct = toNumber(estimate?.change_pct);
-  const underlyingPct = toNumber(underlying?.change_pct);
-  if (estimatePct === null || underlyingPct === null) return false;
-  if (Math.abs(estimatePct) < 0.3 || Math.abs(underlyingPct) < 0.3) return false;
-  return Math.sign(estimatePct) !== Math.sign(underlyingPct);
-}
-
 function formatError(error) {
   if (!(error instanceof Error)) {
     return String(error);
@@ -540,46 +563,6 @@ async function fetchWithRetry(url, responseType, extraHeaders = {}) {
   }
 
   throw lastError;
-}
-
-function buildDecisionStatus(estimate, underlying) {
-  if (estimate?.usable_for_today_decision && underlying?.usable_for_today_decision) {
-    if (isDirectionalMismatch(estimate, underlying)) {
-      return {
-        status: "cautious",
-        reason: "盘中估算与底层实时代理方向不一致，不能直接给正常动作建议。",
-        decision_feed: estimate,
-      };
-    }
-
-    return {
-      status: "ok",
-      reason: "盘中估算与底层实时代理都满足新鲜度门槛。",
-      decision_feed: estimate,
-    };
-  }
-
-  if (estimate?.usable_for_today_decision) {
-    return {
-      status: "cautious",
-      reason: "盘中估算可用，但底层实时代理缺失或不新鲜，只允许保守判断。",
-      decision_feed: estimate,
-    };
-  }
-
-  if (underlying?.usable_for_today_decision) {
-    return {
-      status: "cautious",
-      reason: "底层实时代理可用，但盘中估算缺失或不新鲜，只允许保守判断。",
-      decision_feed: underlying,
-    };
-  }
-
-  return {
-    status: "blocked",
-    reason: "盘中估算与底层实时代理都不可用于当天判断。",
-    decision_feed: null,
-  };
 }
 
 async function fetchText(url) {
@@ -975,7 +958,7 @@ async function collectEstimate(fund) {
       data_time: payload.gztime ?? null,
       fetch_time: fetchTime,
       freshness_minutes: freshness,
-      usable_for_today_decision:
+      usable_for_today_execution:
         freshness !== null && freshness <= FRESHNESS_LIMITS.intradayEstimateMinutes,
       source_name: "天天基金估值接口",
       source_url: fund.estimateUrl,
@@ -984,7 +967,7 @@ async function collectEstimate(fund) {
     return {
       type: "intraday_estimate",
       fetch_time: fetchTime,
-      usable_for_today_decision: false,
+      usable_for_today_execution: false,
       error: formatError(error),
       source_name: "天天基金估值接口",
       source_url: fund.estimateUrl,
@@ -1036,7 +1019,7 @@ async function collectTencentQuoteUnderlying(underlyingConfig, quoteSnapshot) {
       label: underlyingConfig.label ?? "实时代理",
       type: "tencent_quote_proxy",
       fetch_time: fetchTime,
-      usable_for_today_decision: false,
+      usable_for_today_execution: false,
       error: "quote symbol not configured",
       source_name: quoteSnapshot.source_name,
       source_url: null,
@@ -1048,7 +1031,7 @@ async function collectTencentQuoteUnderlying(underlyingConfig, quoteSnapshot) {
       label: underlyingConfig.label ?? "实时代理",
       type: "tencent_quote_proxy",
       fetch_time: fetchTime,
-      usable_for_today_decision: false,
+      usable_for_today_execution: false,
       error: snapshotErrors.join(" | ") || `quote missing for ${symbol}`,
       source_name: quoteSnapshot.source_name,
       source_url: quoteSnapshot.source_urls.find((url) => url.includes(symbol)) ?? null,
@@ -1063,7 +1046,7 @@ async function collectTencentQuoteUnderlying(underlyingConfig, quoteSnapshot) {
     type: "tencent_quote_proxy",
     fetch_time: fetchTime,
     freshness_minutes: freshness,
-    usable_for_today_decision:
+    usable_for_today_execution:
       freshness !== null && freshness <= FRESHNESS_LIMITS.underlyingRealtimeMinutes,
     source_name: quoteSnapshot.source_name,
     source_url: quoteSnapshot.source_urls.find((url) => url.includes(symbol)) ?? null,
@@ -1081,7 +1064,7 @@ async function collectBasketUnderlying(underlyingConfig, quoteSnapshot) {
       label: underlyingConfig.label ?? "实时篮子代理",
       type: "basket_proxy",
       fetch_time: fetchTime,
-      usable_for_today_decision: false,
+      usable_for_today_execution: false,
       error: "basket quote symbols not configured",
       source_name: quoteSnapshot.source_name,
       source_url: null,
@@ -1148,7 +1131,7 @@ async function collectBasketUnderlying(underlyingConfig, quoteSnapshot) {
     component_errors: componentErrors,
     composition_method: "equal_weight_top_holdings_proxy_single_batch_snapshot",
     change_pct: averageChangePct,
-    usable_for_today_decision:
+    usable_for_today_execution:
       usableComponents.length >= minimumUsableComponents &&
       maxFreshness !== null &&
       maxFreshness <= FRESHNESS_LIMITS.underlyingRealtimeMinutes,
@@ -1162,7 +1145,7 @@ async function collectUnderlying(fund, quoteSnapshot) {
   if (!fund.underlying?.type) {
     return {
       label: fund.underlying?.label ?? "未配置实时代理",
-      usable_for_today_decision: false,
+      usable_for_today_execution: false,
       error: "underlying realtime proxy not configured",
       source_name: quoteSnapshot?.source_name ?? "腾讯行情接口",
       source_url: null,
@@ -1179,11 +1162,365 @@ async function collectUnderlying(fund, quoteSnapshot) {
 
   return {
     label: fund.underlying?.label ?? "未识别实时代理",
-    usable_for_today_decision: false,
+    usable_for_today_execution: false,
     error: `unsupported underlying type: ${fund.underlying.type}`,
     source_name: quoteSnapshot?.source_name ?? "腾讯行情接口",
     source_url: null,
   };
+}
+
+function hasFreshEstimate(fund) {
+  return Boolean(fund.intraday_estimate?.usable_for_today_execution);
+}
+
+function hasFreshUnderlying(fund) {
+  return Boolean(fund.underlying_realtime?.usable_for_today_execution);
+}
+
+function hasCompleteRealtime(fund) {
+  return hasFreshEstimate(fund) && hasFreshUnderlying(fund);
+}
+
+function buildDataQuality(funds) {
+  const completeFundCount = funds.filter(hasCompleteRealtime).length;
+  const confidencePct = Math.round(
+    (completeFundCount / Math.max(funds.length, 1)) * 100
+  );
+  const realtimeFreshnessValues = funds
+    .flatMap((fund) => [
+      fund.intraday_estimate?.freshness_minutes,
+      fund.underlying_realtime?.freshness_minutes,
+    ])
+    .map(toNumber)
+    .filter((value) => value !== null);
+  const oldestRealtimeFreshnessMinutes =
+    realtimeFreshnessValues.length > 0
+      ? Math.max(...realtimeFreshnessValues)
+      : null;
+
+  if (completeFundCount === funds.length) {
+    return {
+      status: "complete",
+      label: "实时执行链路完整",
+      confidence_pct: confidencePct,
+      complete_fund_count: completeFundCount,
+      fund_count: funds.length,
+      oldest_realtime_freshness_minutes: oldestRealtimeFreshnessMinutes,
+      can_issue_today_execution: true,
+      reason: "三只基金同时具备新鲜盘中估算和底层实时代理，可以判断是否执行原计划。",
+    };
+  }
+
+  if (completeFundCount > 0) {
+    return {
+      status: "partial",
+      label: "实时执行链路部分可用",
+      confidence_pct: confidencePct,
+      complete_fund_count: completeFundCount,
+      fund_count: funds.length,
+      oldest_realtime_freshness_minutes: oldestRealtimeFreshnessMinutes,
+      can_issue_today_execution: true,
+      reason: "部分基金缺少完整实时校验，只能对链路完整的基金给保守执行建议。",
+    };
+  }
+
+  return {
+    status: "blocked",
+    label: "实时执行链路不可用",
+    confidence_pct: confidencePct,
+    complete_fund_count: completeFundCount,
+    fund_count: funds.length,
+    oldest_realtime_freshness_minutes: oldestRealtimeFreshnessMinutes,
+    can_issue_today_execution: false,
+    reason: "没有基金同时具备新鲜盘中估算和底层实时代理，今天不输出执行建议。",
+  };
+}
+
+function hasInfoItem(items, impact, sourcePattern = null) {
+  return items.some((item) => {
+    const impactMatches = item.impact === impact;
+    const sourceMatches = sourcePattern ? sourcePattern.test(item.source) : true;
+    return impactMatches && sourceMatches;
+  });
+}
+
+function buildPortfolioThesis(infoItems) {
+  const recentItems = infoItems.recent_info_items ?? [];
+  const longTermItems = infoItems.long_term_info_items ?? [];
+  const allItems = [...recentItems, ...longTermItems];
+  const semiconductorHasAnchor = hasInfoItem(allItems, "半导体", /WSTS/i);
+  const goldHasAnchor =
+    hasInfoItem(allItems, "黄金", /SAFE/i) ||
+    hasInfoItem(allItems, "黄金", /World Gold Council/i);
+  const semiconductorStatus = semiconductorHasAnchor ? "green" : "yellow";
+  const goldStatus = goldHasAnchor ? "green" : "yellow";
+  const overallStatus =
+    semiconductorStatus === "green" && goldStatus === "green" ? "green" : "yellow";
+
+  return {
+    overall_status: overallStatus,
+    headline:
+      overallStatus === "green"
+        ? "长期逻辑未变，今天只决定执行节奏"
+        : "长期逻辑需要继续确认，今天执行节奏收紧",
+    semiconductor: {
+      status: semiconductorStatus,
+      label:
+        semiconductorStatus === "green"
+          ? "半导体长期逻辑继续成立"
+          : "半导体长期逻辑需要补充确认",
+      view:
+        semiconductorStatus === "green"
+          ? "AI 算力、先进存储和国产替代仍是 6-24 个月主线，今天的盘中波动只影响是否按计划执行。"
+          : "本次没有抓到足够强的半导体长期锚点，今天不应放大新增动作。",
+      watch_items: [
+        "AI 算力需求是否继续带动先进制程、存储和封测景气。",
+        "国产设备和材料替代是否仍有订单与政策支撑。",
+        "如果出口管制或行业周期数据明显转弱，核心仓需要重新评估。",
+      ],
+    },
+    gold: {
+      status: goldStatus,
+      label:
+        goldStatus === "green"
+          ? "黄金防守仓逻辑继续成立"
+          : "黄金防守仓逻辑需要补充确认",
+      view:
+        goldStatus === "green"
+          ? "央行购金和实物需求仍提供长期支撑，黄金在组合里继续承担防守和分散波动的角色。"
+          : "本次没有抓到足够强的黄金长期锚点，今天不应因盘中下跌主动补仓。",
+      watch_items: [
+        "美元和美债实际利率是否持续压制金价。",
+        "央行购金和 ETF 资金流是否延续支撑。",
+        "若组合防守仓比例已经足够，黄金不需要因短线波动追补。",
+      ],
+    },
+  };
+}
+
+function thesisForFund(fund, portfolioThesis) {
+  if (fund.code === "000218") return portfolioThesis.gold;
+  return portfolioThesis.semiconductor;
+}
+
+function buildDataQualityNote(fund, dataQuality) {
+  if (hasCompleteRealtime(fund)) {
+    return "这只基金今天具备盘中估算和底层代理，可以用于执行节奏判断。";
+  }
+
+  if (dataQuality.status === "blocked") {
+    return "今天实时执行链路不可用，只保留长期逻辑和正式净值复核。";
+  }
+
+  if (hasFreshEstimate(fund)) {
+    return "盘中估算可用，但底层代理缺失或过旧，执行建议需要收紧。";
+  }
+
+  if (hasFreshUnderlying(fund)) {
+    return "底层代理可用，但基金盘中估算缺失或过旧，执行建议需要收紧。";
+  }
+
+  return "这只基金今天缺少可核验的实时执行数据。";
+}
+
+function evidenceForFund(fund) {
+  const estimate = fund.intraday_estimate;
+  const underlying = fund.underlying_realtime;
+  const official = fund.official_nav;
+  const evidence = [];
+
+  evidence.push(
+    `盘中估算 ${formatPercent(estimate?.change_pct)}，时间 ${formatChinaDisplay(
+      estimate?.data_time
+    )}`
+  );
+  evidence.push(
+    `底层代理 ${formatPercent(underlying?.change_pct)}，时间 ${formatChinaDisplay(
+      underlying?.data_time
+    )}`
+  );
+  evidence.push(
+    `正式净值 ${official?.nav ?? "未知"}，日期 ${official?.nav_date ?? "未知"}，近 1 日 ${changeWord(official?.performance_1d_pct)}`
+  );
+
+  return evidence;
+}
+
+function buildExecutionPlan(fund, dataQuality, portfolioThesis) {
+  const thesis = thesisForFund(fund, portfolioThesis);
+  const estimatePct = toNumber(fund.intraday_estimate?.change_pct);
+  const proxyPct = toNumber(fund.underlying_realtime?.change_pct);
+  const evidence = evidenceForFund(fund);
+
+  if (!dataQuality.can_issue_today_execution || !hasCompleteRealtime(fund)) {
+    return {
+      action: "no_today_action",
+      action_label: "今日不输出执行建议",
+      amount_label: "不新增",
+      cadence: "等待下一次实时链路完整后再判断执行节奏。",
+      reason: "长期逻辑可以复核，但缺少完整实时执行过滤器，不能把旧数据当成动作依据。",
+      evidence,
+      stop_conditions: [
+        "实时数据恢复前，不把正式净值或旧估值用于新增。",
+      ],
+    };
+  }
+
+  if (thesis.status === "red") {
+    return {
+      action: "pause_new",
+      action_label: "暂停新增",
+      amount_label: "不新增",
+      cadence: "先做长期逻辑再评估，不急于执行计划。",
+      reason: "长期逻辑已经明显转弱，数据再新也只能说明今天价格位置，不能支持继续新增。",
+      evidence,
+      stop_conditions: ["长期逻辑没有重新转绿前，不恢复计划内买入。"],
+    };
+  }
+
+  if (thesis.status === "yellow") {
+    return {
+      action: "observe_only",
+      action_label: "仅观察",
+      amount_label: "不新增",
+      cadence: "等待长期锚点补充确认。",
+      reason: "长期逻辑还需要确认，今天不应该因为盘中波动主动扩大仓位。",
+      evidence,
+      stop_conditions: ["没有新的长期锚点前，不把回调当成自动加仓信号。"],
+    };
+  }
+
+  if (fund.code === "012552") {
+    if ((estimatePct ?? 0) >= 1.5 || (proxyPct ?? 0) >= 2) {
+      return {
+        action: "half_plan",
+        action_label: "半额执行",
+        amount_label: "计划金额减半",
+        cadence: "只保留计划内动作，不追涨放大。",
+        reason: "核心半导体长期逻辑未变，但今天盘中位置偏高，适合降低执行强度。",
+        evidence,
+        stop_conditions: ["若估值涨幅继续扩大或代理明显背离，剩余计划推迟到下一交易日。"],
+      };
+    }
+
+    if ((estimatePct ?? 0) <= -1 && (proxyPct ?? 0) <= -1) {
+      return {
+        action: "small_approach",
+        action_label: "小额靠近",
+        amount_label: "低于正常计划金额",
+        cadence: "分批执行，单笔保持小。",
+        reason: "核心半导体长期逻辑未变，盘中回落提供更好的执行位置，但还不是重仓信号。",
+        evidence,
+        stop_conditions: ["若出现行业逻辑负面消息，停止把回落视为买点。"],
+      };
+    }
+
+    return {
+      action: "normal_plan",
+      action_label: "按原计划执行",
+      amount_label: "正常计划金额",
+      cadence: "按既定定投或分批计划执行，不临时放大。",
+      reason: "核心半导体长期逻辑未变，今天盘中位置没有明显追高或恐慌特征。",
+      evidence,
+      stop_conditions: ["若盘中快速拉升到明显追高区间，改为半额执行。"],
+    };
+  }
+
+  if (fund.code === "021532") {
+    if ((estimatePct ?? 0) >= 2 || (proxyPct ?? 0) >= 3) {
+      return {
+        action: "half_plan",
+        action_label: "半额执行",
+        amount_label: "计划金额减半",
+        cadence: "设备仓只慢慢靠近，不追强势尖峰。",
+        reason: "设备链长期逻辑未变，但弹性仓今天涨幅较大，追高后的回撤风险高于核心仓。",
+        evidence,
+        stop_conditions: ["若设备代理涨幅继续扩大，剩余买入推迟。"],
+      };
+    }
+
+    if ((estimatePct ?? 0) <= -1.5 && (proxyPct ?? 0) <= -1.5) {
+      return {
+        action: "small_approach",
+        action_label: "小额靠近",
+        amount_label: "低于核心仓计划金额",
+        cadence: "只做试探，不把弹性仓当核心仓补。",
+        reason: "设备仓回落可以改善执行位置，但波动大，不能因为下跌就放大单笔。",
+        evidence,
+        stop_conditions: ["若设备链基本面或订单预期转弱，停止新增。"],
+      };
+    }
+
+    return {
+      action: "normal_plan",
+      action_label: "按原计划执行",
+      amount_label: "计划内小额",
+      cadence: "保持比核心仓更慢的节奏。",
+      reason: "设备国产化逻辑仍在，但弹性仓天然波动更高，执行上要比核心仓克制。",
+      evidence,
+      stop_conditions: ["若当日涨幅突然扩大，改为半额或暂停。"],
+    };
+  }
+
+  if ((estimatePct ?? 0) <= -2 || (proxyPct ?? 0) <= -2) {
+    return {
+      action: "observe_only",
+      action_label: "仅观察",
+      amount_label: "不主动追补",
+      cadence: "维持防守仓定位，等正式净值和宏观信号复核。",
+      reason: "黄金今天明显承压，但防守仓不应因为单日下跌自动补仓，先看美元、美债和实际利率压力是否延续。",
+      evidence,
+      stop_conditions: ["若美元或实际利率继续上行，不把下跌视为补仓信号。"],
+    };
+  }
+
+  if ((estimatePct ?? 0) >= 1.5 || (proxyPct ?? 0) >= 1.5) {
+    return {
+      action: "pause_new",
+      action_label: "暂停新增",
+      amount_label: "不追补",
+      cadence: "维持已有防守仓比例。",
+      reason: "黄金上涨时不承担进攻任务，防守仓比例足够时没有必要追补。",
+      evidence,
+      stop_conditions: ["组合防守仓比例不足前，不因短线修复新增。"],
+    };
+  }
+
+  return {
+    action: "normal_plan",
+    action_label: "按原计划执行",
+    amount_label: "仅限计划内防守仓比例",
+    cadence: "只做比例维护，不把黄金当进攻仓。",
+    reason: "黄金长期防守逻辑未变，今天波动没有触发暂停或追补条件。",
+    evidence,
+    stop_conditions: ["若宏观利率压力明显增强，暂停新增。"],
+  };
+}
+
+function buildTriggerCheck(fund, dataQuality) {
+  return {
+    intraday_position: `盘中估算 ${formatPercent(
+      fund.intraday_estimate?.change_pct
+    )}，底层代理 ${formatPercent(fund.underlying_realtime?.change_pct)}。`,
+    official_nav_review: `最新正式净值 ${fund.official_nav?.nav ?? "未知"}（${
+      fund.official_nav?.nav_date ?? "未知"
+    }），近 1 日 ${changeWord(fund.official_nav?.performance_1d_pct)}，近 1 周 ${changeWord(
+      fund.official_nav?.performance_1w_pct
+    )}。`,
+    data_quality_note: buildDataQualityNote(fund, dataQuality),
+  };
+}
+
+function addLongTermExecutionFields(funds, dataQuality, portfolioThesis) {
+  return funds.map((fund) => {
+    const thesisStatus = thesisForFund(fund, portfolioThesis);
+    return {
+      ...fund,
+      thesis_status: thesisStatus,
+      execution_plan: buildExecutionPlan(fund, dataQuality, portfolioThesis),
+      trigger_check: buildTriggerCheck(fund, dataQuality),
+    };
+  });
 }
 
 async function collectFund(fund, quoteSnapshot) {
@@ -1193,15 +1530,10 @@ async function collectFund(fund, quoteSnapshot) {
     collectUnderlying(fund, quoteSnapshot),
   ]);
 
-  const decision = buildDecisionStatus(estimate, underlyingRealtime);
-
   return {
     code: fund.code,
     name: fund.name,
     role: fund.role,
-    decision_feed: decision.decision_feed,
-    decision_status: decision.status,
-    decision_reason: decision.reason,
     intraday_estimate: estimate,
     official_nav: officialNav,
     underlying_realtime: underlyingRealtime,
@@ -1217,19 +1549,25 @@ async function main() {
     Promise.all(FUND_CONFIG.map((fund) => collectFund(fund, quoteSnapshot))),
     collectOfficialInfoItems(),
   ]);
+  const generatedAt = nowIso();
+  const dataQuality = buildDataQuality(funds);
+  const portfolioThesis = buildPortfolioThesis(infoItems);
+  const analyzedFunds = addLongTermExecutionFields(
+    funds,
+    dataQuality,
+    portfolioThesis
+  );
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
-    generated_at: nowIso(),
-    funds,
+    model_version: "long_term_execution_v1",
+    generated_at: generatedAt,
+    data_quality: dataQuality,
+    portfolio_thesis: portfolioThesis,
+    funds: analyzedFunds,
     recent_info_items: infoItems.recent_info_items,
     long_term_info_items: infoItems.long_term_info_items,
     info_source_errors: infoItems.info_source_errors,
-    stats: {
-      ok_count: funds.filter((item) => item.decision_status === "ok").length,
-      cautious_count: funds.filter((item) => item.decision_status === "cautious").length,
-      blocked_count: funds.filter((item) => item.decision_status === "blocked").length,
-    },
   };
 
   await mkdir(path.dirname(outPath), { recursive: true });
