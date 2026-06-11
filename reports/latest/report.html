@@ -21,8 +21,7 @@
     body {
       margin: 0;
       color: var(--ink);
-      background:
-        linear-gradient(180deg, #edf4f0 0%, var(--page) 38%, #eef2f5 100%);
+      background: linear-gradient(180deg, #edf4f0 0%, var(--page) 38%, #eef2f5 100%);
       font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
       line-height: 1.72;
     }
@@ -36,14 +35,14 @@
       box-shadow: var(--shadow);
     }
     h1, h2, h3, h4, p { margin-top: 0; }
-    h1 { max-width: 880px; font-size: clamp(30px, 4vw, 46px); line-height: 1.16; margin-bottom: 12px; }
+    h1 { max-width: 900px; font-size: clamp(30px, 4vw, 46px); line-height: 1.16; margin-bottom: 12px; }
     h2 { font-size: clamp(22px, 2.4vw, 30px); margin-bottom: 14px; }
     h3 { font-size: 19px; margin-bottom: 8px; }
-    h4 { font-size: 15px; margin: 14px 0 8px; }
+    h4 { font-size: 15px; margin: 16px 0 8px; }
     a { color: var(--blue); }
     ul { margin: 0; padding-left: 20px; }
     li + li { margin-top: 5px; }
-    .meta-row, .thesis-grid, .window-grid, .action-list, .info-grid { display: grid; gap: 14px; }
+    .meta-row, .review-grid, .signal-grid, .action-list { display: grid; gap: 14px; }
     .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
     .meta-pill {
       border-left: 4px solid var(--blue);
@@ -77,8 +76,8 @@
     .badge.good { background: var(--good); }
     .badge.watch { background: var(--watch); }
     .badge.stop { background: var(--stop); }
-    .thesis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .thesis-card, .plain-panel, .action-card, .info-card {
+    .review-grid { grid-template-columns: 1fr; }
+    .review-card, .signal-panel, .action-card {
       border: 1px solid var(--line);
       background: var(--paper);
       border-radius: 12px;
@@ -91,11 +90,20 @@
       gap: 12px;
       margin-bottom: 8px;
     }
-    .window-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .evidence-row, .fund-row {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .impact-grid, .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 16px;
+      margin-top: 14px;
+    }
+    .signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .action-list { grid-template-columns: 1fr; }
     .action-card { border-left: 5px solid var(--blue); }
-    .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
-    .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
     table { width: 100%; border-collapse: collapse; min-width: 980px; font-size: 14px; }
     th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
@@ -105,7 +113,7 @@
     @media (max-width: 780px) {
       main { width: min(100% - 18px, 1120px); margin-top: 12px; }
       section { padding: 18px; border-radius: 12px; }
-      .meta-row, .thesis-grid, .window-grid, .info-grid, .action-grid { grid-template-columns: 1fr; }
+      .meta-row, .signal-grid, .impact-grid, .action-grid { grid-template-columns: 1fr; }
       .card-head { flex-direction: column; }
     }
   </style>
@@ -114,43 +122,112 @@
 <main>
   <section>
     <div class="meta-row">
-      <div class="meta-pill">抓取时间：2026-06-11 17:08:35 CST</div>
+      <div class="meta-pill">抓取时间：2026-06-11 18:37:42 CST</div>
       <div class="meta-pill">数据质量：完整 / 100%</div>
       <div class="meta-pill">实时覆盖：3/3</div>
       <div class="meta-pill">最旧实时数据：&lt;1 分钟</div>
     </div>
     <div class="topline">
-      <span class="badge good">继续成立</span>
+      <span class="badge good">长期逻辑继续成立</span>
       <span>长期逻辑总状态</span>
     </div>
-    <h1>长期逻辑未变，今天只决定执行节奏</h1>
+    <h1>长期逻辑未变，今天只调整执行节奏</h1>
     <p><b>今日执行：</b>012552 按原计划执行；021532 半额执行；000218 仅观察</p>
-    <p class="section-note"><b>一句话原因：</b>长期配置逻辑先于盘中涨跌；今天的新鲜数据只用于过滤执行节奏。</p>
+    <p class="section-note"><b>一句话原因：</b>长期复核已合并最近 1-2 个月原始信息和基金表现；实时数据只用于判断今天执行幅度。</p>
   </section>
 
   <section>
     <h2>长期逻辑复核</h2>
-    <div class="thesis-grid">
+    <div class="review-grid">
       
-    <article class="thesis-card">
+    <article class="review-card">
       <div class="card-head">
         <h3>半导体长期逻辑</h3>
         <span class="badge good">继续成立</span>
       </div>
-      <p>AI 算力、先进存储和国产替代仍是 6-24 个月主线，今天的盘中波动只影响是否按计划执行。</p>
-      <h4>观察项</h4>
-      <ul><li>AI 算力需求是否继续带动先进制程、存储和封测景气。</li><li>国产设备和材料替代是否仍有订单与政策支撑。</li><li>如果出口管制或行业周期数据明显转弱，核心仓需要重新评估。</li></ul>
+      <p><b>结论：</b>最近 1-2 个月的行业证据仍支持半导体 6-24 个月配置逻辑，今天主要是控制执行节奏。</p>
+      <h4>最近 1-2 个月发生了什么</h4>
+      <ul><li>WSTS 2026-06-02：这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</li><li>WSTS 2026-06-02：长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。</li></ul>
+      <h4>原始信息证据</h4>
+      
+      <div class="evidence-row">
+        <p><b>WSTS 上调 2026 年全球半导体市场规模预期</b></p>
+        <p class="meta">WSTS｜2026-06-02｜<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">来源链接</a></p>
+        <p><b>原始事实：</b>WSTS 在最新春季预测中写明，2026 年全球半导体市场预计同比增长 90% ，达到 1.51 万亿美元。</p>
+        <p><b>逻辑含义：</b>这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</p>
+      </div>
+    
+      <div class="evidence-row">
+        <p><b>AI 基础设施和 HBM 仍是半导体长期驱动</b></p>
+        <p class="meta">WSTS｜2026-06-02｜<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">来源链接</a></p>
+        <p><b>原始事实：</b>WSTS 指出，2026 年存储器预计同比增长约 250% ，规模超过 800 十亿美元；2027 年全球半导体市场还预计继续增长 27% 至约 1.9 万亿美元。</p>
+        <p><b>逻辑含义：</b>长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。</p>
+      </div>
+    
+      <h4>结合基金表现怎么看</h4>
+      
+      <div class="fund-row">
+        <p><b>012552 天弘芯片产业ETF联接A</b>｜半导体核心配置</p>
+        <p>最新正式净值 1.5437（2026-06-10），近 1 日 下跌 -0.84%，近 1 周 下跌 -3.49%，近 1 月 未知。</p>
+        <p>盘中估算 +0.66%（2026-06-11 15:00），底层代理 +0.71%（2026-06-11 16:15:00）。</p>
+        <p class="muted">核心仓更适合按长期计划执行，短期波动主要影响单日执行幅度。</p>
+      </div>
+    
+      <div class="fund-row">
+        <p><b>021532 天弘半导体设备指数A</b>｜半导体设备弹性仓</p>
+        <p>最新正式净值 2.9379（2026-06-10），近 1 日 上涨 +2.33%，近 1 周 上涨 +7.51%，近 1 月 未知。</p>
+        <p>盘中估算 +5.22%（2026-06-11 15:00），底层代理 +5.78%（2026-06-11 16:14:58）。</p>
+        <p class="muted">设备仓相对核心仓弹性更高，若短期涨幅明显更强，执行上应更慢。</p>
+      </div>
+    
+      <div class="impact-grid">
+        <p><b>是否改变配置逻辑：</b>不改变半导体作为长期配置方向的判断；核心仓继续按计划，设备仓按更高波动品种管理。</p>
+        <p><b>对今天执行节奏的影响：</b>012552 当前盘中估算 +0.66%，可按计划；021532 盘中估算 +5.22%、代理 +5.78%，短期过热，执行减半。</p>
+      </div>
+      <h4>后续观察项</h4>
+      <ul><li>AI 算力、先进存储和国产替代是否继续有订单与政策支撑。</li><li>设备方向若继续大幅跑赢核心仓，需要警惕短期回撤。</li><li>若出口管制或行业周期数据明显转弱，核心仓和设备仓都要重新评估。</li></ul>
     </article>
   
       
-    <article class="thesis-card">
+    <article class="review-card">
       <div class="card-head">
         <h3>黄金长期逻辑</h3>
         <span class="badge good">继续成立</span>
       </div>
-      <p>央行购金和实物需求仍提供长期支撑，黄金在组合里继续承担防守和分散波动的角色。</p>
-      <h4>观察项</h4>
-      <ul><li>美元和美债实际利率是否持续压制金价。</li><li>央行购金和 ETF 资金流是否延续支撑。</li><li>若组合防守仓比例已经足够，黄金不需要因短线波动追补。</li></ul>
+      <p><b>结论：</b>最近 1-2 个月的央行购金和需求证据仍支持黄金防守仓逻辑，但短期承压时不自动补仓。</p>
+      <h4>最近 1-2 个月发生了什么</h4>
+      <ul><li>SAFE 2026-06-07：央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</li><li>World Gold Council 2026-04-29：黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。</li></ul>
+      <h4>原始信息证据</h4>
+      
+      <div class="evidence-row">
+        <p><b>中国 5 月官方黄金储备继续增加</b></p>
+        <p class="meta">SAFE｜2026-06-07｜<a href="https://www.safe.gov.cn/safe/2026/0206/27116.html" target="_blank" rel="noreferrer">来源链接</a></p>
+        <p><b>原始事实：</b>国家外汇管理局公布的官方储备资产显示，2026 年 5 月黄金储备为 7496 万盎司，高于 2026 年 4 月的 7464 万盎司；按美元计的黄金储备价值为 3407.52 亿美元。</p>
+        <p><b>逻辑含义：</b>央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</p>
+      </div>
+    
+      <div class="evidence-row">
+        <p><b>WGC 季报显示黄金长期需求仍有央行与实物投资支撑</b></p>
+        <p class="meta">World Gold Council｜2026-04-29｜<a href="https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026" target="_blank" rel="noreferrer">来源链接</a></p>
+        <p><b>原始事实：</b>世界黄金协会 Q1 2026 季报显示，全球黄金总需求同比小幅升至 1,231 吨，总价值创 1930 亿美元新高；金条金币投资推动需求增长，ETF 买盘放缓，但央行仍保持较大买入力度。</p>
+        <p><b>逻辑含义：</b>黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。</p>
+      </div>
+    
+      <h4>结合基金表现怎么看</h4>
+      
+      <div class="fund-row">
+        <p><b>000218 国泰黄金ETF联接A</b>｜黄金防守仓</p>
+        <p>最新正式净值 3.3099（2026-06-10），近 1 日 下跌 -3.12%，近 1 周 下跌 -5.92%，近 1 月 未知。</p>
+        <p>盘中估算 -2.14%（2026-06-11 15:30），底层代理 -2.66%（2026-06-11 16:14:50）。</p>
+        <p class="muted">黄金承担防守和分散波动，不应把单日下跌自动等同于补仓机会。</p>
+      </div>
+    
+      <div class="impact-grid">
+        <p><b>是否改变配置逻辑：</b>不改变黄金作为组合防守仓的定位；是否补足取决于组合防守仓比例，而不是单日涨跌。</p>
+        <p><b>对今天执行节奏的影响：</b>000218 盘中估算 -2.14%、黄金 ETF 代理 -2.66%，短期压力明显，今天仅观察。</p>
+      </div>
+      <h4>后续观察项</h4>
+      <ul><li>美元和美债实际利率是否继续压制黄金。</li><li>央行购金和黄金 ETF 资金流是否延续支撑。</li><li>若组合防守仓比例已经足够，黄金不需要因短线波动追补。</li></ul>
     </article>
   
     </div>
@@ -158,15 +235,23 @@
 
   
     <section>
-      <h2>今日执行判断</h2>
-      <div class="window-grid">
-        <article class="plain-panel">
-          <h3>今天先判断执行，不重判长期方向</h3>
-          <p>长期逻辑决定是否继续配置，盘中估算和底层代理只决定今天是否按计划执行、减半、靠近或暂停。</p>
+      <h2>今日执行信号汇总</h2>
+      <div class="signal-grid">
+        <article class="signal-panel">
+          <h3>执行结论</h3>
+          <p>012552 按原计划执行；021532 半额执行；000218 仅观察</p>
         </article>
-        <article class="plain-panel">
-          <h3>可以输出执行节奏</h3>
-          <p>三只基金同时具备新鲜盘中估算和底层实时代理，可以判断是否执行原计划。</p>
+        <article class="signal-panel">
+          <h3>触发原因</h3>
+          <p>长期复核决定方向是否继续成立，基金盘中估算和底层代理决定今天执行幅度。</p>
+        </article>
+        <article class="signal-panel">
+          <h3>关键证据</h3>
+          <ul><li>012552：盘中估算 +0.66%，时间 2026-06-11 15:00；底层代理 +0.71%，时间 2026-06-11 16:15:00</li><li>021532：盘中估算 +5.22%，时间 2026-06-11 15:00；底层代理 +5.78%，时间 2026-06-11 16:14:58</li><li>000218：盘中估算 -2.14%，时间 2026-06-11 15:30；底层代理 -2.66%，时间 2026-06-11 16:14:50</li></ul>
+        </article>
+        <article class="signal-panel">
+          <h3>主要风险</h3>
+          <ul><li>若盘中快速拉升到明显追高区间，改为半额执行。</li><li>若设备代理涨幅继续扩大，剩余买入推迟。</li><li>若美元或实际利率继续上行，不把下跌视为补仓信号。</li></ul>
         </article>
       </div>
     </section>
@@ -291,46 +376,10 @@
     </section>
   
 
-  <section>
-    <h2>原始信息层</h2>
-    <h3>近期信息</h3>
-    <div class="info-grid">
-      <article class="info-card">
-        <h3>WSTS 上调 2026 年全球半导体市场规模预期</h3>
-        <p class="meta">影响对象：半导体｜时间：2026-06-02｜来源：<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">WSTS</a>｜可信度：高</p>
-        <p><b>原始信息：</b>WSTS 在最新春季预测中写明，2026 年全球半导体市场预计同比增长 90% ，达到 1.51 万亿美元。</p>
-        <p><b>可能影响：</b>这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</p>
-      </article>
-    
-      <article class="info-card">
-        <h3>中国 5 月官方黄金储备继续增加</h3>
-        <p class="meta">影响对象：黄金｜时间：2026-06-07｜来源：<a href="https://www.safe.gov.cn/safe/2026/0206/27116.html" target="_blank" rel="noreferrer">SAFE</a>｜可信度：高</p>
-        <p><b>原始信息：</b>国家外汇管理局公布的官方储备资产显示，2026 年 5 月黄金储备为 7496 万盎司，高于 2026 年 4 月的 7464 万盎司；按美元计的黄金储备价值为 3407.52 亿美元。</p>
-        <p><b>可能影响：</b>央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</p>
-      </article>
-    </div>
-    <h3 style="margin-top:20px;">长期信息</h3>
-    <div class="info-grid">
-      <article class="info-card">
-        <h3>AI 基础设施和 HBM 仍是半导体长期驱动</h3>
-        <p class="meta">影响对象：半导体｜时间：2026-06-02｜来源：<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">WSTS</a>｜可信度：高</p>
-        <p><b>原始信息：</b>WSTS 指出，2026 年存储器预计同比增长约 250% ，规模超过 800 十亿美元；2027 年全球半导体市场还预计继续增长 27% 至约 1.9 万亿美元。</p>
-        <p><b>可能影响：</b>长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。</p>
-      </article>
-    
-      <article class="info-card">
-        <h3>WGC 季报显示黄金长期需求仍有央行与实物投资支撑</h3>
-        <p class="meta">影响对象：黄金｜时间：2026-04-29｜来源：<a href="https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026" target="_blank" rel="noreferrer">World Gold Council</a>｜可信度：高</p>
-        <p><b>原始信息：</b>世界黄金协会 Q1 2026 季报显示，全球黄金总需求同比小幅升至 1,231 吨，总价值创 1930 亿美元新高；金条金币投资推动需求增长，ETF 买盘放缓，但央行仍保持较大买入力度。</p>
-        <p><b>可能影响：</b>黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。</p>
-      </article>
-    </div>
-  </section>
-
   <section class="footer-note">
     <h2>来源与不确定性</h2>
-    <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；正式净值复核来自东方财富历史净值接口；原始信息层来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
-    <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤今天执行节奏，不能替代正式净值或长期基本面判断。</p>
+    <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；正式净值复核来自东方财富历史净值接口；长期逻辑复核证据来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
+    <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤执行节奏，不能替代正式净值或长期基本面判断。</p>
     <p><b>数据缺口：</b>本次未发现关键数据抓取缺口。</p>
   </section>
 </main>

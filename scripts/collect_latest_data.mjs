@@ -855,8 +855,8 @@ async function collectOfficialInfoItems() {
   }
 
   return {
-    recent_info_items: recentItems,
-    long_term_info_items: longTermItems,
+    recent: recentItems,
+    long_term: longTermItems,
     info_source_errors: errors,
   };
 }
@@ -1236,71 +1236,144 @@ function buildDataQuality(funds) {
   };
 }
 
-function hasInfoItem(items, impact, sourcePattern = null) {
-  return items.some((item) => {
-    const impactMatches = item.impact === impact;
-    const sourceMatches = sourcePattern ? sourcePattern.test(item.source) : true;
-    return impactMatches && sourceMatches;
-  });
-}
-
-function buildPortfolioThesis(infoItems) {
-  const recentItems = infoItems.recent_info_items ?? [];
-  const longTermItems = infoItems.long_term_info_items ?? [];
-  const allItems = [...recentItems, ...longTermItems];
-  const semiconductorHasAnchor = hasInfoItem(allItems, "半导体", /WSTS/i);
-  const goldHasAnchor =
-    hasInfoItem(allItems, "黄金", /SAFE/i) ||
-    hasInfoItem(allItems, "黄金", /World Gold Council/i);
-  const semiconductorStatus = semiconductorHasAnchor ? "green" : "yellow";
-  const goldStatus = goldHasAnchor ? "green" : "yellow";
-  const overallStatus =
-    semiconductorStatus === "green" && goldStatus === "green" ? "green" : "yellow";
-
+function evidenceFromInfoItem(item) {
   return {
-    overall_status: overallStatus,
-    headline:
-      overallStatus === "green"
-        ? "长期逻辑未变，今天只决定执行节奏"
-        : "长期逻辑需要继续确认，今天执行节奏收紧",
-    semiconductor: {
-      status: semiconductorStatus,
-      label:
-        semiconductorStatus === "green"
-          ? "半导体长期逻辑继续成立"
-          : "半导体长期逻辑需要补充确认",
-      view:
-        semiconductorStatus === "green"
-          ? "AI 算力、先进存储和国产替代仍是 6-24 个月主线，今天的盘中波动只影响是否按计划执行。"
-          : "本次没有抓到足够强的半导体长期锚点，今天不应放大新增动作。",
-      watch_items: [
-        "AI 算力需求是否继续带动先进制程、存储和封测景气。",
-        "国产设备和材料替代是否仍有订单与政策支撑。",
-        "如果出口管制或行业周期数据明显转弱，核心仓需要重新评估。",
-      ],
-    },
-    gold: {
-      status: goldStatus,
-      label:
-        goldStatus === "green"
-          ? "黄金防守仓逻辑继续成立"
-          : "黄金防守仓逻辑需要补充确认",
-      view:
-        goldStatus === "green"
-          ? "央行购金和实物需求仍提供长期支撑，黄金在组合里继续承担防守和分散波动的角色。"
-          : "本次没有抓到足够强的黄金长期锚点，今天不应因盘中下跌主动补仓。",
-      watch_items: [
-        "美元和美债实际利率是否持续压制金价。",
-        "央行购金和 ETF 资金流是否延续支撑。",
-        "若组合防守仓比例已经足够，黄金不需要因短线波动追补。",
-      ],
-    },
+    title: item.title,
+    source: item.source,
+    time: item.time,
+    url: item.url,
+    fact: item.fact,
+    logic_impact: item.effect,
   };
 }
 
-function thesisForFund(fund, portfolioThesis) {
-  if (fund.code === "000218") return portfolioThesis.gold;
-  return portfolioThesis.semiconductor;
+function evidenceItemsForImpact(sourcePool, impact) {
+  return [
+    ...(sourcePool.recent ?? []),
+    ...(sourcePool.long_term ?? []),
+  ]
+    .filter((item) => item.impact === impact)
+    .map(evidenceFromInfoItem);
+}
+
+function statusLabelForThesis(status) {
+  if (status === "green") return "继续成立";
+  if (status === "yellow") return "边际观察";
+  return "明显转弱";
+}
+
+function buildFundReviewEvidence(fund) {
+  return {
+    code: fund.code,
+    name: fund.name,
+    role: fund.role,
+    official_review: `最新正式净值 ${fund.official_nav?.nav ?? "未知"}（${
+      fund.official_nav?.nav_date ?? "未知"
+    }），近 1 日 ${changeWord(fund.official_nav?.performance_1d_pct)}，近 1 周 ${changeWord(
+      fund.official_nav?.performance_1w_pct
+    )}，近 1 月 ${changeWord(fund.official_nav?.performance_1m_pct)}。`,
+    intraday_review: `盘中估算 ${formatPercent(
+      fund.intraday_estimate?.change_pct
+    )}（${formatChinaDisplay(fund.intraday_estimate?.data_time)}），底层代理 ${formatPercent(
+      fund.underlying_realtime?.change_pct
+    )}（${formatChinaDisplay(fund.underlying_realtime?.data_time)}）。`,
+    interpretation: fund.code === "021532"
+      ? "设备仓相对核心仓弹性更高，若短期涨幅明显更强，执行上应更慢。"
+      : fund.code === "000218"
+        ? "黄金承担防守和分散波动，不应把单日下跌自动等同于补仓机会。"
+        : "核心仓更适合按长期计划执行，短期波动主要影响单日执行幅度。",
+  };
+}
+
+function buildSemiconductorReview(sourcePool, funds) {
+  const evidenceItems = evidenceItemsForImpact(sourcePool, "半导体");
+  const fundEvidence = funds
+    .filter((fund) => fund.code === "012552" || fund.code === "021532")
+    .map(buildFundReviewEvidence);
+  const core = funds.find((fund) => fund.code === "012552");
+  const equipment = funds.find((fund) => fund.code === "021532");
+  const hasEvidence = evidenceItems.length > 0;
+  const status = hasEvidence ? "green" : "yellow";
+  const equipmentHot =
+    toNumber(equipment?.intraday_estimate?.change_pct) >= 2 ||
+    toNumber(equipment?.underlying_realtime?.change_pct) >= 3;
+
+  return {
+    title: "半导体长期逻辑",
+    status,
+    status_label: statusLabelForThesis(status),
+    conclusion: hasEvidence
+      ? "最近 1-2 个月的行业证据仍支持半导体 6-24 个月配置逻辑，今天主要是控制执行节奏。"
+      : "本次没有抓到足够强的半导体原始证据，长期逻辑暂不否定，但新增节奏需要收紧。",
+    review_window: "最近 1-2 个月",
+    recent_developments: evidenceItems.length > 0
+      ? evidenceItems.map((item) => `${item.source} ${item.time}：${item.logic_impact}`)
+      : ["本次没有抓到可写入复核层的半导体高价值原始信息。"],
+    evidence_items: evidenceItems,
+    fund_evidence: fundEvidence,
+    allocation_impact: hasEvidence
+      ? "不改变半导体作为长期配置方向的判断；核心仓继续按计划，设备仓按更高波动品种管理。"
+      : "长期配置方向需要等待更多原始信息确认，今天不适合放大半导体新增金额。",
+    execution_impact: equipmentHot
+      ? `012552 当前盘中估算 ${formatPercent(core?.intraday_estimate?.change_pct)}，可按计划；021532 盘中估算 ${formatPercent(equipment?.intraday_estimate?.change_pct)}、代理 ${formatPercent(equipment?.underlying_realtime?.change_pct)}，短期过热，执行减半。`
+      : "半导体今天没有触发明显追高约束，执行重点是按计划、小额、分批。",
+    watch_items: [
+      "AI 算力、先进存储和国产替代是否继续有订单与政策支撑。",
+      "设备方向若继续大幅跑赢核心仓，需要警惕短期回撤。",
+      "若出口管制或行业周期数据明显转弱，核心仓和设备仓都要重新评估。",
+    ],
+  };
+}
+
+function buildGoldReview(sourcePool, funds) {
+  const evidenceItems = evidenceItemsForImpact(sourcePool, "黄金");
+  const fundEvidence = funds
+    .filter((fund) => fund.code === "000218")
+    .map(buildFundReviewEvidence);
+  const gold = funds.find((fund) => fund.code === "000218");
+  const hasEvidence = evidenceItems.length > 0;
+  const status = hasEvidence ? "green" : "yellow";
+  const goldPressure =
+    toNumber(gold?.intraday_estimate?.change_pct) <= -2 ||
+    toNumber(gold?.underlying_realtime?.change_pct) <= -2;
+
+  return {
+    title: "黄金长期逻辑",
+    status,
+    status_label: statusLabelForThesis(status),
+    conclusion: hasEvidence
+      ? "最近 1-2 个月的央行购金和需求证据仍支持黄金防守仓逻辑，但短期承压时不自动补仓。"
+      : "本次没有抓到足够强的黄金原始证据，防守仓逻辑暂不否定，但新增需要更保守。",
+    review_window: "最近 1-2 个月",
+    recent_developments: evidenceItems.length > 0
+      ? evidenceItems.map((item) => `${item.source} ${item.time}：${item.logic_impact}`)
+      : ["本次没有抓到可写入复核层的黄金高价值原始信息。"],
+    evidence_items: evidenceItems,
+    fund_evidence: fundEvidence,
+    allocation_impact: hasEvidence
+      ? "不改变黄金作为组合防守仓的定位；是否补足取决于组合防守仓比例，而不是单日涨跌。"
+      : "黄金防守仓比例可以保留，但不宜因为短线下跌主动增加配置。",
+    execution_impact: goldPressure
+      ? `000218 盘中估算 ${formatPercent(gold?.intraday_estimate?.change_pct)}、黄金 ETF 代理 ${formatPercent(gold?.underlying_realtime?.change_pct)}，短期压力明显，今天仅观察。`
+      : "黄金今天没有触发明显追补条件，维持防守仓比例管理。",
+    watch_items: [
+      "美元和美债实际利率是否继续压制黄金。",
+      "央行购金和黄金 ETF 资金流是否延续支撑。",
+      "若组合防守仓比例已经足够，黄金不需要因短线波动追补。",
+    ],
+  };
+}
+
+function buildThesisReviews(sourcePool, funds) {
+  return {
+    semiconductor: buildSemiconductorReview(sourcePool, funds),
+    gold: buildGoldReview(sourcePool, funds),
+  };
+}
+
+function thesisForFund(fund, thesisReviews) {
+  if (fund.code === "000218") return thesisReviews.gold;
+  return thesisReviews.semiconductor;
 }
 
 function buildDataQualityNote(fund, dataQuality) {
@@ -1511,16 +1584,55 @@ function buildTriggerCheck(fund, dataQuality) {
   };
 }
 
-function addLongTermExecutionFields(funds, dataQuality, portfolioThesis) {
+function addLongTermExecutionFields(funds, dataQuality, thesisReviews) {
   return funds.map((fund) => {
-    const thesisStatus = thesisForFund(fund, portfolioThesis);
+    const thesisStatus = thesisForFund(fund, thesisReviews);
     return {
       ...fund,
       thesis_status: thesisStatus,
-      execution_plan: buildExecutionPlan(fund, dataQuality, portfolioThesis),
+      execution_plan: buildExecutionPlan(fund, dataQuality, thesisReviews),
       trigger_check: buildTriggerCheck(fund, dataQuality),
     };
   });
+}
+
+function weakestThesisStatus(thesisReviews) {
+  const order = { green: 0, yellow: 1, red: 2 };
+  const statuses = [
+    thesisReviews.semiconductor?.status ?? "yellow",
+    thesisReviews.gold?.status ?? "yellow",
+  ];
+  return statuses.reduce((weakest, status) =>
+    order[status] > order[weakest] ? status : weakest
+  );
+}
+
+function buildTopConclusion(dataQuality, thesisReviews, funds) {
+  const status = weakestThesisStatus(thesisReviews);
+  const actionSummary = dataQuality.can_issue_today_execution
+    ? funds
+        .map((fund) => `${fund.code} ${fund.execution_plan?.action_label ?? "未知"}`)
+        .join("；")
+    : "今日不输出执行建议，只保留长期逻辑复核和正式净值复核";
+
+  return {
+    status,
+    status_label:
+      status === "green"
+        ? "长期逻辑继续成立"
+        : status === "yellow"
+          ? "长期逻辑边际观察"
+          : "长期逻辑明显转弱",
+    headline:
+      status === "green"
+        ? "长期逻辑未变，今天只调整执行节奏"
+        : status === "yellow"
+          ? "长期逻辑需要继续确认，今天执行节奏收紧"
+          : "长期逻辑转弱，今天暂停新增并重新评估",
+    action_summary: actionSummary,
+    reason:
+      "长期复核已合并最近 1-2 个月原始信息和基金表现；实时数据只用于判断今天执行幅度。",
+  };
 }
 
 async function collectFund(fund, quoteSnapshot) {
@@ -1551,22 +1663,26 @@ async function main() {
   ]);
   const generatedAt = nowIso();
   const dataQuality = buildDataQuality(funds);
-  const portfolioThesis = buildPortfolioThesis(infoItems);
+  const thesisReviews = buildThesisReviews(infoItems, funds);
   const analyzedFunds = addLongTermExecutionFields(
     funds,
     dataQuality,
-    portfolioThesis
+    thesisReviews
   );
+  const topConclusion = buildTopConclusion(dataQuality, thesisReviews, analyzedFunds);
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
-    model_version: "long_term_execution_v1",
+    model_version: "long_term_review_v2",
     generated_at: generatedAt,
     data_quality: dataQuality,
-    portfolio_thesis: portfolioThesis,
+    top_conclusion: topConclusion,
+    thesis_reviews: thesisReviews,
     funds: analyzedFunds,
-    recent_info_items: infoItems.recent_info_items,
-    long_term_info_items: infoItems.long_term_info_items,
+    source_pool: {
+      recent: infoItems.recent,
+      long_term: infoItems.long_term,
+    },
     info_source_errors: infoItems.info_source_errors,
   };
 
