@@ -6,7 +6,6 @@ import { promisify } from "node:util";
 import path from "node:path";
 
 const DEFAULT_TIMEZONE = "Asia/Shanghai";
-const DEFAULT_OUT = path.join("reports", "latest", "data.json");
 const MODEL_VERSION = "long_term_review_v6";
 const DESIGN_PATH = "design.md";
 const SOURCE_REGISTRY_PATH = "sources-registry.json";
@@ -1734,7 +1733,7 @@ function buildHistoryReview(historyContext, currentFunds) {
       sample_size: reviewItems.length,
       basis:
         historyContext.usable_report_count === 0
-          ? "尚无 v6 日期报告可复盘；本次运行开始建立日期目录和长期记忆。"
+          ? "尚无早于本报告日期的 v6 日期报告可复盘；同日重复运行不计入近 7 日判断复盘。"
           : "日期报告样本不足，暂不计算判断有效率百分比。",
       accurate_points: reviewItems
         .filter((item) => item.effective)
@@ -2786,8 +2785,8 @@ async function collectPortfolioOnlyFund(position) {
 }
 
 async function main() {
-  const outPath = getArg("--out", DEFAULT_OUT);
   const reportDate = getArg("--date", todayInShanghai());
+  const outPath = getArg("--out", path.join(REPORTS_DIR, reportDate, "data.json"));
 
   const [designContext, sourceRegistry, longTermMemory, historyContext] =
     await Promise.all([

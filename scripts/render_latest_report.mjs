@@ -3,9 +3,7 @@
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const DEFAULT_INPUT = path.join("reports", "latest", "data.json");
-const DEFAULT_REPORT = path.join("reports", "latest", "report.html");
-const DEFAULT_SOURCES = path.join("reports", "latest", "sources.md");
+const DEFAULT_TIMEZONE = "Asia/Shanghai";
 const EXPECTED_MODEL_VERSION = "long_term_review_v6";
 const REPORTS_DIR = "reports";
 const LONG_TERM_MEMORY_PATH = path.join(REPORTS_DIR, "long-term-memory.md");
@@ -16,6 +14,16 @@ function getArg(name, fallback = null) {
   const index = process.argv.indexOf(name);
   if (index === -1) return fallback;
   return process.argv[index + 1] ?? fallback;
+}
+
+function todayInShanghai(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DEFAULT_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(date);
 }
 
 async function readTextIfExists(filePath, fallback = "") {
@@ -891,13 +899,13 @@ async function listDatedReportDirs() {
     .reverse();
 }
 
-async function writeDatedArtifacts(data, inputPath, reportHtmlText, sourcesText) {
+async function ensureDatedDataFile(data, inputPath) {
   const datedDir = path.join(REPORTS_DIR, data.report_date);
+  const datedDataPath = path.join(datedDir, "data.json");
   await mkdir(datedDir, { recursive: true });
-  await copyFile(inputPath, path.join(datedDir, "data.json"));
-  await writeFile(path.join(datedDir, "report.html"), `${reportHtmlText}\n`, "utf8");
-  await writeFile(path.join(datedDir, "sources.md"), `${sourcesText}\n`, "utf8");
-  return datedDir;
+  if (path.resolve(inputPath) !== path.resolve(datedDataPath)) {
+    await copyFile(inputPath, datedDataPath);
+  }
 }
 
 async function readPrunedReportSummary(dirName) {
@@ -1028,21 +1036,31 @@ async function pruneOldReportDirs() {
 }
 
 async function main() {
-  const inputPath = getArg("--input", DEFAULT_INPUT);
-  const reportPath = getArg("--report", DEFAULT_REPORT);
-  const sourcesPath = getArg("--sources", DEFAULT_SOURCES);
+  const inputDate = getArg("--date", todayInShanghai());
+  const inputPath = getArg(
+    "--input",
+    path.join(REPORTS_DIR, inputDate, "data.json")
+  );
 
   const raw = await readFile(inputPath, "utf8");
   const data = JSON.parse(raw);
   assertCurrentModel(data);
   const html = stripTrailingWhitespace(reportHtml(data));
   const sources = stripTrailingWhitespace(sourcesMarkdown(data));
+  const reportPath = getArg(
+    "--report",
+    path.join(REPORTS_DIR, data.report_date, "report.html")
+  );
+  const sourcesPath = getArg(
+    "--sources",
+    path.join(REPORTS_DIR, data.report_date, "sources.md")
+  );
 
+  await ensureDatedDataFile(data, inputPath);
   await mkdir(path.dirname(reportPath), { recursive: true });
   await writeFile(reportPath, `${html}\n`, "utf8");
   await writeFile(sourcesPath, `${sources}\n`, "utf8");
 
-  await writeDatedArtifacts(data, inputPath, html, sources);
   const prunedReports = await pruneOldReportDirs();
   await updateLongTermMemory(data, prunedReports);
 }

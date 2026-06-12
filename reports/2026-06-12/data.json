@@ -2,13 +2,13 @@
   "report_date": "2026-06-12",
   "timezone": "Asia/Shanghai",
   "model_version": "long_term_review_v6",
-  "generated_at": "2026-06-12T08:27:08.904Z",
+  "generated_at": "2026-06-12T08:43:15.873Z",
   "automation_context": {
     "design_document": {
       "path": "design.md",
       "loaded": true,
       "model_version": "long_term_review_v6",
-      "bytes": 20814,
+      "bytes": 20710,
       "verified_model_version": true
     },
     "source_registry_path": "sources-registry.json",
@@ -179,7 +179,7 @@
     ]
   },
   "execution_context": {
-    "generated_at_local": "2026-06-12 16:27:08",
+    "generated_at_local": "2026-06-12 16:43:15",
     "order_cutoff_time": "15:00",
     "is_after_cutoff": true,
     "order_window": "after_cutoff",
@@ -199,7 +199,7 @@
     "status": "insufficient_history",
     "effectiveness_pct": null,
     "sample_size": 0,
-    "basis": "尚无 v6 日期报告可复盘；本次运行开始建立日期目录和长期记忆。",
+    "basis": "尚无早于本报告日期的 v6 日期报告可复盘；同日重复运行不计入近 7 日判断复盘。",
     "accurate_points": [],
     "inaccurate_points": [],
     "follow_up_adjustments": [
@@ -371,7 +371,7 @@
         "previous_nav": 1.5535,
         "previous_nav_date": "2026-06-11",
         "data_time": "2026-06-12 15:00",
-        "fetch_time": "2026-06-12T08:27:00.227Z",
+        "fetch_time": "2026-06-12T08:43:07.975Z",
         "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "天天基金估值接口",
@@ -392,7 +392,7 @@
         "type": "basket_proxy",
         "label": "前十大持仓等权实时篮子",
         "data_time": "2026-06-12T08:14:59.000Z",
-        "fetch_time": "2026-06-12T08:27:00.227Z",
+        "fetch_time": "2026-06-12T08:43:07.975Z",
         "freshness_minutes": 0,
         "component_count": 10,
         "usable_component_count": 10,
@@ -600,7 +600,7 @@
         "amount_rationale": "核心仓仍有空间，盘中位置没有明显追高，所以采用均衡档。",
         "reason": "半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。",
         "execution_context_used": {
-          "generated_at_local": "2026-06-12 16:27:08",
+          "generated_at_local": "2026-06-12 16:43:15",
           "order_window": "after_cutoff",
           "pending_order_status": "unknown"
         },
@@ -623,7 +623,7 @@
         "previous_nav": 3.0854,
         "previous_nav_date": "2026-06-11",
         "data_time": "2026-06-12 15:00",
-        "fetch_time": "2026-06-12T08:27:00.230Z",
+        "fetch_time": "2026-06-12T08:43:07.977Z",
         "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "天天基金估值接口",
@@ -644,7 +644,7 @@
         "type": "basket_proxy",
         "label": "前十大设备持仓等权实时篮子",
         "data_time": "2026-06-12T08:15:00.000Z",
-        "fetch_time": "2026-06-12T08:27:00.227Z",
+        "fetch_time": "2026-06-12T08:43:07.975Z",
         "freshness_minutes": 0,
         "component_count": 10,
         "usable_component_count": 10,
@@ -852,7 +852,7 @@
         "amount_rationale": "设备仓需要低于核心仓，今天采用均衡档的小额金额。",
         "reason": "设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。",
         "execution_context_used": {
-          "generated_at_local": "2026-06-12 16:27:08",
+          "generated_at_local": "2026-06-12 16:43:15",
           "order_window": "after_cutoff",
           "pending_order_status": "unknown"
         },
@@ -875,7 +875,7 @@
         "previous_nav": 3.2381,
         "previous_nav_date": "2026-06-11",
         "data_time": "2026-06-12 15:30",
-        "fetch_time": "2026-06-12T08:27:00.231Z",
+        "fetch_time": "2026-06-12T08:43:07.978Z",
         "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "天天基金估值接口",
@@ -901,7 +901,7 @@
         "data_time": "2026-06-12T08:14:44.000Z",
         "code": "518800",
         "type": "tencent_quote_proxy",
-        "fetch_time": "2026-06-12T08:27:00.227Z",
+        "fetch_time": "2026-06-12T08:43:07.975Z",
         "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "腾讯行情接口",
@@ -992,7 +992,7 @@
         "amount_rationale": "黄金总仓位已经足够，金额设为 0。",
         "reason": "黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。",
         "execution_context_used": {
-          "generated_at_local": "2026-06-12 16:27:08",
+          "generated_at_local": "2026-06-12 16:43:15",
           "order_window": "after_cutoff",
           "pending_order_status": "unknown"
         },
