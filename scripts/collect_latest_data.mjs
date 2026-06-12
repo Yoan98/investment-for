@@ -1,12 +1,19 @@
 #!/usr/bin/env node
 
 import { execFile } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import path from "node:path";
 
 const DEFAULT_TIMEZONE = "Asia/Shanghai";
 const DEFAULT_OUT = path.join("reports", "latest", "data.json");
+const MODEL_VERSION = "long_term_review_v6";
+const DESIGN_PATH = "design.md";
+const SOURCE_REGISTRY_PATH = "sources-registry.json";
+const REPORTS_DIR = "reports";
+const LONG_TERM_MEMORY_PATH = path.join(REPORTS_DIR, "long-term-memory.md");
+const RECENT_REPORT_LIMIT = 7;
+const DATE_DIR_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const FUND_CONFIG = [
   {
@@ -127,9 +134,12 @@ const FRESHNESS_LIMITS = {
 const INFO_SOURCE_URLS = {
   wstsHome: "https://www.wsts.org/",
   wstsPress: "https://www.wsts.org/76/Recent-News-Release",
+  siaPosts: "https://www.semiconductors.org/wp-json/wp/v2/posts?per_page=5",
   wgcQ1Report:
     "https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026",
   safeOfficialReserveAssetsCn: "https://www.safe.gov.cn/safe/2026/0206/27116.html",
+  treasuryRealYieldBase:
+    "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_real_yield_curve",
 };
 
 const FETCH_RETRY_ATTEMPTS = 5;
@@ -149,18 +159,37 @@ function getArg(name, fallback = null) {
   return process.argv[index + 1] ?? fallback;
 }
 
+async function readTextIfExists(filePath, fallback = null) {
+  try {
+    return await readFile(filePath, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return fallback;
+    throw error;
+  }
+}
+
+async function readJsonIfExists(filePath, fallback = null) {
+  const raw = await readTextIfExists(filePath, null);
+  if (raw === null) return fallback;
+  return JSON.parse(raw);
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
 
-function todayInShanghai() {
+function shanghaiYearMonth(date = new Date()) {
+  return todayInShanghai(date).slice(0, 7).replace("-", "");
+}
+
+function todayInShanghai(date = new Date()) {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: DEFAULT_TIMEZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
-  return formatter.format(new Date());
+  return formatter.format(date);
 }
 
 function toNumber(value) {
@@ -239,6 +268,71 @@ function decodeHtmlEntities(value) {
 
 function cleanText(value) {
   return decodeHtmlEntities(stripTags(value)).replace(/\s+/g, " ").trim();
+}
+
+function excerptText(value, maxLength = 1200) {
+  const cleaned = cleanText(value);
+  if (cleaned.length <= maxLength) return cleaned;
+  return `${cleaned.slice(0, maxLength)}...`;
+}
+
+function defaultLongTermMemory() {
+  return `# 长期记忆
+
+> 本文件由日报自动化维护。首次运行时先建立空记忆，后续每次生成报告后压缩、去噪并重写。
+
+## 当前长期结论
+
+- 暂无足够历史样本，等待 v6 日期报告累计。
+
+## 已验证有效的判断
+
+- 暂无。
+
+## 历史判断偏差
+
+- 暂无。
+
+## 资金与仓位经验
+
+- 暂无。
+
+## 来源可靠性
+
+- 暂无。
+
+## 已删除或降权的噪音
+
+- 暂无。
+
+## 最近压缩更新
+
+- 暂无。
+`;
+}
+
+async function ensureLongTermMemory() {
+  const existing = await readTextIfExists(LONG_TERM_MEMORY_PATH, null);
+  if (existing !== null) {
+    return {
+      path: LONG_TERM_MEMORY_PATH,
+      loaded: true,
+      created: false,
+      content: existing,
+      excerpt: excerptText(existing, 1600),
+    };
+  }
+
+  const initial = defaultLongTermMemory();
+  await mkdir(path.dirname(LONG_TERM_MEMORY_PATH), { recursive: true });
+  await writeFile(LONG_TERM_MEMORY_PATH, initial, "utf8");
+  return {
+    path: LONG_TERM_MEMORY_PATH,
+    loaded: true,
+    created: true,
+    content: initial,
+    excerpt: excerptText(initial, 1600),
+  };
 }
 
 function toIsoDateString(value) {
@@ -788,6 +882,72 @@ function parseWgcReport(text) {
   };
 }
 
+function parseSiaPosts(posts) {
+  if (!Array.isArray(posts) || posts.length === 0) {
+    return { error: "SIA posts response empty" };
+  }
+
+  const post =
+    posts.find((item) =>
+      cleanText(item?.title?.rendered).toLowerCase().includes("sales")
+    ) ?? posts[0];
+  const title = cleanText(post?.title?.rendered);
+  const content = cleanText(post?.content?.rendered ?? post?.excerpt?.rendered);
+  const date = toIsoDateString(post?.date_gmt ?? post?.date);
+  const link = post?.link ?? INFO_SOURCE_URLS.siaPosts;
+  const salesMatch = content.match(
+    /sales were \$([0-9.]+)\s+billion[\s\S]{0,120}?increase of ([0-9.]+)%[\s\S]{0,120}?and ([0-9.]+)% more than/i
+  );
+
+  return {
+    title,
+    content,
+    publishDate: date,
+    link,
+    salesUsdBn: toNumber(salesMatch?.[1]),
+    monthOnMonthPct: toNumber(salesMatch?.[2]),
+    yearOnYearPct: toNumber(salesMatch?.[3]),
+  };
+}
+
+function treasuryRealYieldUrl() {
+  return `${INFO_SOURCE_URLS.treasuryRealYieldBase}&field_tdr_date_value_month=${shanghaiYearMonth()}`;
+}
+
+function parseTreasuryRealYield(text) {
+  const entries = [];
+  const entryPattern = /<entry>[\s\S]*?<\/entry>/gi;
+
+  for (const entryMatch of text.matchAll(entryPattern)) {
+    const entry = entryMatch[0];
+    const date = firstMatch(entry, /<d:NEW_DATE[^>]*>([^<]+)<\/d:NEW_DATE>/i);
+    const tenYear = toNumber(firstMatch(entry, /<d:TC_10YEAR[^>]*>([^<]+)<\/d:TC_10YEAR>/i));
+    if (!date || tenYear === null) continue;
+    entries.push({
+      date: toIsoDateString(date),
+      ten_year_real_yield: tenYear,
+    });
+  }
+
+  if (entries.length === 0) {
+    return { error: "Treasury real yield XML contains no parsable entries" };
+  }
+
+  entries.sort((left, right) => left.date.localeCompare(right.date));
+  const latest = entries.at(-1);
+  const first = entries[0];
+  const previous = entries.at(-2) ?? first;
+
+  return {
+    latest,
+    first,
+    previous,
+    month_change_pct: roundToTwo(latest.ten_year_real_yield - first.ten_year_real_yield),
+    daily_change_pct: roundToTwo(latest.ten_year_real_yield - previous.ten_year_real_yield),
+    entry_count: entries.length,
+  };
+}
+
 async function collectOfficialInfoItems() {
   const errors = [];
   const recentItems = [];
@@ -797,6 +957,8 @@ async function collectOfficialInfoItems() {
   let wstsPressText = null;
   let safeGoldText = null;
   let wgcText = null;
+  let siaPosts = null;
+  let treasuryText = null;
 
   try {
     wstsHomeText = await fetchText(INFO_SOURCE_URLS.wstsHome);
@@ -811,6 +973,12 @@ async function collectOfficialInfoItems() {
   }
 
   try {
+    siaPosts = await fetchJson(INFO_SOURCE_URLS.siaPosts);
+  } catch (error) {
+    errors.push(`SIA posts: ${formatError(error)}`);
+  }
+
+  try {
     safeGoldText = await fetchText(INFO_SOURCE_URLS.safeOfficialReserveAssetsCn);
   } catch (error) {
     errors.push(`SAFE reserve assets: ${formatError(error)}`);
@@ -820,6 +988,12 @@ async function collectOfficialInfoItems() {
     wgcText = await fetchText(INFO_SOURCE_URLS.wgcQ1Report);
   } catch (error) {
     errors.push(`WGC Q1 report: ${formatError(error)}`);
+  }
+
+  try {
+    treasuryText = await fetchText(treasuryRealYieldUrl());
+  } catch (error) {
+    errors.push(`U.S. Treasury real yield: ${formatError(error)}`);
   }
 
   if (wstsHomeText && wstsPressText) {
@@ -862,6 +1036,30 @@ async function collectOfficialInfoItems() {
         "长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。",
     });
     if (longTermSemiconductor) longTermItems.push(longTermSemiconductor);
+  }
+
+  if (siaPosts) {
+    const sia = parseSiaPosts(siaPosts);
+    if (sia.error) {
+      errors.push(`SIA parse: ${sia.error}`);
+    } else {
+      const recentSia = buildInfoItem({
+        title: sia.title || "SIA 最新全球半导体销售数据",
+        impact: "半导体",
+        time: sia.publishDate,
+        source: "SIA",
+        url: sia.link,
+        fact:
+          sia.salesUsdBn !== null &&
+          sia.monthOnMonthPct !== null &&
+          sia.yearOnYearPct !== null
+            ? `SIA 最近公告显示，全球半导体月销售额为 ${sia.salesUsdBn} 十亿美元，环比增长 ${sia.monthOnMonthPct}% ，同比增长 ${sia.yearOnYearPct}% 。`
+            : `SIA 最近公告为：${sia.title}。`,
+        effect:
+          "月度销售改善能补充 WSTS 的年度预测，说明半导体景气不只停留在长期预测层面，也有近期销售数据支撑。",
+      });
+      if (recentSia) recentItems.push(recentSia);
+    }
   }
 
   if (safeGoldText) {
@@ -919,6 +1117,29 @@ async function collectOfficialInfoItems() {
       }
     } catch (error) {
       errors.push(`WGC parse: ${formatError(error)}`);
+    }
+  }
+
+  if (treasuryText) {
+    const treasury = parseTreasuryRealYield(treasuryText);
+    if (treasury.error) {
+      errors.push(`U.S. Treasury real yield parse: ${treasury.error}`);
+    } else {
+      const latestYield = treasury.latest.ten_year_real_yield;
+      const pressureText =
+        latestYield >= 2
+          ? "实际利率处在偏高位置，对黄金短期估值有压制。"
+          : "实际利率压力不算极端，黄金防守仓压力相对可控。";
+      const recentTreasury = buildInfoItem({
+        title: "美国 10 年期实际利率用于过滤黄金短期压力",
+        impact: "黄金",
+        time: treasury.latest.date,
+        source: "U.S. Treasury",
+        url: treasuryRealYieldUrl(),
+        fact: `U.S. Treasury 实际收益率曲线显示，${treasury.latest.date} 的 10 年期实际利率为 ${latestYield}% ，较本月首个数据点变化 ${treasury.month_change_pct} 个百分点。`,
+        effect: `${pressureText}它只能影响 000218 国泰黄金ETF联接A 的今日金额节奏，不能单独否定黄金长期防守仓定位。`,
+      });
+      if (recentTreasury) recentItems.push(recentTreasury);
     }
   }
 
@@ -1352,6 +1573,402 @@ function fundFullName(item) {
   return `${item.code} ${item.name}`;
 }
 
+async function listRecentReportDirs(reportDate) {
+  let entries = [];
+  try {
+    entries = await readdir(REPORTS_DIR, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+
+  return entries
+    .filter((entry) => entry.isDirectory() && DATE_DIR_PATTERN.test(entry.name))
+    .map((entry) => entry.name)
+    .filter((date) => date < reportDate)
+    .sort()
+    .reverse()
+    .slice(0, RECENT_REPORT_LIMIT);
+}
+
+async function readRecentReport(dirName) {
+  const dirPath = path.join(REPORTS_DIR, dirName);
+  const [dataRaw, htmlRaw, sourcesRaw] = await Promise.all([
+    readTextIfExists(path.join(dirPath, "data.json"), null),
+    readTextIfExists(path.join(dirPath, "report.html"), null),
+    readTextIfExists(path.join(dirPath, "sources.md"), null),
+  ]);
+  const data = dataRaw ? JSON.parse(dataRaw) : null;
+
+  return {
+    date: dirName,
+    dir: dirPath,
+    files: {
+      data_json: {
+        path: path.join(dirPath, "data.json"),
+        exists: dataRaw !== null,
+        bytes: dataRaw === null ? 0 : Buffer.byteLength(dataRaw),
+      },
+      report_html: {
+        path: path.join(dirPath, "report.html"),
+        exists: htmlRaw !== null,
+        bytes: htmlRaw === null ? 0 : Buffer.byteLength(htmlRaw),
+        excerpt: htmlRaw === null ? "" : excerptText(htmlRaw, 900),
+      },
+      sources_md: {
+        path: path.join(dirPath, "sources.md"),
+        exists: sourcesRaw !== null,
+        bytes: sourcesRaw === null ? 0 : Buffer.byteLength(sourcesRaw),
+        excerpt: sourcesRaw === null ? "" : excerptText(sourcesRaw, 900),
+      },
+    },
+    data,
+  };
+}
+
+async function readHistoryContext(reportDate) {
+  const dirs = await listRecentReportDirs(reportDate);
+  const reports = await Promise.all(dirs.map(readRecentReport));
+  const usableReports = reports.filter((report) => report.data);
+
+  return {
+    lookback_limit: RECENT_REPORT_LIMIT,
+    report_count: reports.length,
+    usable_report_count: usableReports.length,
+    dates: reports.map((report) => report.date),
+    reports,
+    referenced_files: reports.flatMap((report) => [
+      report.files.data_json,
+      report.files.report_html,
+      report.files.sources_md,
+    ]),
+  };
+}
+
+function latestActionForFund(report, code) {
+  const fund = report?.data?.funds?.find((item) => item.code === code);
+  if (!fund?.action_plan) return null;
+  return {
+    date: report.date,
+    code: fund.code,
+    name: fund.name,
+    action: fund.action_plan.action,
+    action_label: fund.action_plan.action_label,
+    recommended_amount: fund.action_plan.recommended_amount,
+    reason: fund.action_plan.reason,
+    amount_rationale: fund.action_plan.amount_rationale,
+  };
+}
+
+function evaluatePriorAction(priorAction, currentFund, currentPlan) {
+  const perf1w = toNumber(currentFund?.official_nav?.performance_1w_pct);
+  const perf1m = toNumber(currentFund?.official_nav?.performance_1m_pct);
+  const currentAction = currentPlan?.action;
+  const action = priorAction.action;
+  const amount = toNumber(priorAction.recommended_amount) ?? 0;
+
+  if (action === "buy") {
+    const severeDrawdown = (perf1w !== null && perf1w <= -4) || (perf1m !== null && perf1m <= -8);
+    const stillConstructive = currentAction === "buy" || currentAction === "hold";
+    return {
+      effective: !severeDrawdown && stillConstructive,
+      observation: `${fundFullName(priorAction)} 当时建议买入 ${formatAmount(amount)}；当前近 1 周 ${changeWord(perf1w)}，近 1 月 ${changeWord(perf1m)}，今天动作为 ${currentPlan?.action_label ?? "未知"}。`,
+      reason: severeDrawdown
+        ? "买入后短期回撤较大，需要检查是否追高或证据不足。"
+        : stillConstructive
+          ? "当前表现和今天动作仍支持当时的小额买入判断。"
+          : "今天动作已经转向观望或不操作，需要下调当时判断权重。",
+    };
+  }
+
+  if (action === "sell") {
+    const avoidedWeakness = perf1w !== null && perf1w <= 0;
+    return {
+      effective: avoidedWeakness,
+      observation: `${fundFullName(priorAction)} 当时建议卖出 ${formatAmount(amount)}；当前近 1 周 ${changeWord(perf1w)}。`,
+      reason: avoidedWeakness
+        ? "卖出后没有错过明显上涨，风险控制判断暂时有效。"
+        : "卖出后短期表现走强，需要复查风险证据是否过度放大。",
+    };
+  }
+
+  const missedMove = perf1w !== null && perf1w >= 4 && currentAction === "buy";
+  return {
+    effective: !missedMove,
+    observation: `${fundFullName(priorAction)} 当时建议${priorAction.action_label ?? "不操作"} ${formatAmount(amount)}；当前近 1 周 ${changeWord(perf1w)}，今天动作为 ${currentPlan?.action_label ?? "未知"}。`,
+    reason: missedMove
+      ? "此前观望后出现较强上涨且今天转为买入，需要检查是否过度保守。"
+      : "此前不新增或持有判断没有被当前数据明显否定。",
+  };
+}
+
+function buildHistoryReview(historyContext, currentFunds) {
+  const reports = historyContext.reports.filter((report) => report.data);
+  const currentByCode = new Map(currentFunds.map((fund) => [fund.code, fund]));
+  const reviewItems = [];
+
+  for (const report of reports) {
+    for (const code of ["012552", "021532", "000218"]) {
+      const priorAction = latestActionForFund(report, code);
+      const currentFund = currentByCode.get(code);
+      const currentPlan = currentFund?.action_plan;
+      if (!priorAction || !currentFund || !currentPlan) continue;
+      const evaluation = evaluatePriorAction(priorAction, currentFund, currentPlan);
+      reviewItems.push({
+        date: report.date,
+        fund: fundFullName(priorAction),
+        prior_action: priorAction.action_label,
+        prior_amount: priorAction.recommended_amount,
+        current_action: currentPlan.action_label,
+        effective: evaluation.effective,
+        observation: evaluation.observation,
+        reason: evaluation.reason,
+      });
+    }
+  }
+
+  if (reviewItems.length < 3) {
+    return {
+      status: "insufficient_history",
+      effectiveness_pct: null,
+      sample_size: reviewItems.length,
+      basis:
+        historyContext.usable_report_count === 0
+          ? "尚无 v6 日期报告可复盘；本次运行开始建立日期目录和长期记忆。"
+          : "日期报告样本不足，暂不计算判断有效率百分比。",
+      accurate_points: reviewItems
+        .filter((item) => item.effective)
+        .map((item) => `${item.date} ${item.fund}：${item.reason}`)
+        .slice(0, 3),
+      inaccurate_points: reviewItems
+        .filter((item) => !item.effective)
+        .map((item) => `${item.date} ${item.fund}：${item.reason}`)
+        .slice(0, 3),
+      follow_up_adjustments: [
+        "先按当次证据和仓位给金额，不因为样本不足而机械加仓或减仓。",
+        "后续累计至少 3 条行动判断后，再计算判断有效率。",
+        "继续保留完整日期目录，供下一次报告复盘。",
+      ],
+      review_items: reviewItems,
+    };
+  }
+
+  const effectiveCount = reviewItems.filter((item) => item.effective).length;
+  const effectivenessPct = Math.round((effectiveCount / reviewItems.length) * 100);
+
+  return {
+    status: effectivenessPct >= 70 ? "effective" : "needs_adjustment",
+    effectiveness_pct: effectivenessPct,
+    sample_size: reviewItems.length,
+    basis:
+      "逐条对照最近日期报告中的行动建议、当前正式净值表现和今天动作是否仍然一致；这是判断有效率，不是预测准确率。",
+    accurate_points: reviewItems
+      .filter((item) => item.effective)
+      .map((item) => `${item.date} ${item.fund}：${item.reason}`)
+      .slice(0, 5),
+    inaccurate_points: reviewItems
+      .filter((item) => !item.effective)
+      .map((item) => `${item.date} ${item.fund}：${item.reason}`)
+      .slice(0, 5),
+    follow_up_adjustments:
+      effectivenessPct >= 70
+        ? [
+            "维持小额、分批、按角色区分核心仓和弹性仓的执行方式。",
+            "复盘暂未提示需要推翻长期逻辑，但仍需用当日行情过滤金额。",
+          ]
+        : [
+            "降低出现偏差基金的积极档金额，优先使用谨慎档或观望。",
+            "增加对来源可靠性和短期涨跌位置的检查，避免证据不足时买入。",
+          ],
+    review_items: reviewItems,
+  };
+}
+
+async function readDesignContext() {
+  const content = await readTextIfExists(DESIGN_PATH, "");
+  const modelMentioned = content.includes(MODEL_VERSION);
+  if (!modelMentioned) {
+    throw new Error(`design.md does not mention ${MODEL_VERSION}`);
+  }
+
+  return {
+    path: DESIGN_PATH,
+    loaded: true,
+    model_version: MODEL_VERSION,
+    bytes: Buffer.byteLength(content),
+    verified_model_version: modelMentioned,
+  };
+}
+
+async function readSourceRegistry() {
+  const registry = await readJsonIfExists(SOURCE_REGISTRY_PATH, null);
+  if (!registry?.version || !Array.isArray(registry.sources)) {
+    throw new Error("sources-registry.json is missing version or sources");
+  }
+  return registry;
+}
+
+function collectedEvidenceSourceNames(sourcePool) {
+  return new Set(
+    [...(sourcePool.recent ?? []), ...(sourcePool.long_term ?? [])]
+      .map((item) => String(item.source ?? "").toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function sourceIsRelevantForPortfolio(source) {
+  const scopes = Array.isArray(source.asset_scope) ? source.asset_scope : [];
+  return scopes.some((scope) =>
+    ["fund_market", "semiconductor", "semiconductor_equipment", "gold"].includes(scope)
+  );
+}
+
+function sourceEvidenceStatus(source, evidenceNames) {
+  const normalizedName = String(source.name ?? "").toLowerCase();
+  const normalizedId = String(source.id ?? "").toLowerCase();
+  const hasEvidence =
+    evidenceNames.has(normalizedName) ||
+    (normalizedId === "world_gold_council" && evidenceNames.has("world gold council")) ||
+    (normalizedId === "us_treasury_real_yield" && evidenceNames.has("u.s. treasury"));
+
+  if (source.collection_mode === "implemented") {
+    if (hasEvidence || source.category === "fixed_market_data") return "collected";
+    return "selected_but_no_current_signal";
+  }
+
+  return "registered_not_collected";
+}
+
+function buildSourceSelection(registry, sourcePool, infoSourceErrors, historyReview, longTermMemory) {
+  const evidenceNames = collectedEvidenceSourceNames(sourcePool);
+  const sources = registry.sources ?? [];
+  const selectedSources = sources
+    .filter((source) => source.enabled && sourceIsRelevantForPortfolio(source) && source.priority <= 2)
+    .map((source) => ({
+      id: source.id,
+      name: source.name,
+      category: source.category,
+      reliability: source.reliability,
+      priority: source.priority,
+      collection_mode: source.collection_mode,
+      selected_reason:
+        source.category === "fixed_market_data"
+          ? "固定行情和基金表现来源，用于今日执行过滤和历史复盘。"
+          : source.asset_scope?.includes("semiconductor")
+            ? "组合持有半导体核心仓和设备弹性仓，需要复核行业景气与设备链证据。"
+            : "组合持有黄金防守仓，需要复核央行购金、黄金需求和实际利率压力。",
+      collection_status: sourceEvidenceStatus(source, evidenceNames),
+      url: source.url,
+      notes: source.notes,
+    }));
+
+  const notSelectedToday = sources
+    .filter((source) => source.enabled && source.priority > 2)
+    .map((source) => ({
+      id: source.id,
+      name: source.name,
+      reason: "优先级较低或当前缺少稳定结构化抓取，本轮不让它影响行动金额。",
+      url: source.url,
+    }));
+
+  const failedSources = infoSourceErrors.map((error) => ({
+    source_error: error,
+    treatment: "作为数据缺口披露，不写入行动证据。",
+  }));
+
+  return {
+    registry_version: registry.version,
+    strategy:
+      "使用来源注册表做有边界的来源选择；本轮只把成功抓取并能解释动作的来源写入证据。",
+    selected_sources: selectedSources,
+    not_selected_today: notSelectedToday,
+    failed_sources: failedSources,
+    proposed_sources: [
+      {
+        name: "中证或申万半导体指数估值分位",
+        use_case: "辅助判断半导体买入金额是否追高。",
+        reliability: "medium",
+        proposed_collection: "后续寻找稳定公开接口或手工维护估值分位。",
+        reason: "当前行动金额主要依赖盘中涨跌和正式净值，缺少估值位置证据。",
+      },
+      {
+        name: "黄金 ETF 全球资金流结构化数据",
+        use_case: "区分黄金上涨来自央行、实物投资还是 ETF 短线资金。",
+        reliability: "high",
+        proposed_collection: "优先接入 World Gold Council ETF flows 数据端点。",
+        reason: "黄金防守仓是否加仓需要知道资金流是否只是短线拥挤。",
+      },
+    ],
+    source_quality_notes: [
+      `本轮抓到 ${evidenceNames.size} 类长期证据来源。`,
+      historyReview.effectiveness_pct === null
+        ? "历史样本不足，暂不因复盘调整来源权重。"
+        : `最近判断有效率为 ${historyReview.effectiveness_pct}% ，后续可据此调高或调低来源权重。`,
+      longTermMemory.created
+        ? "长期记忆本轮首次创建，尚未形成来源可靠性沉淀。"
+        : "长期记忆已读取，今日报告会参考其中的长期结论和历史偏差。",
+    ],
+  };
+}
+
+function historyContextForOutput(historyContext) {
+  return {
+    lookback_limit: historyContext.lookback_limit,
+    report_count: historyContext.report_count,
+    usable_report_count: historyContext.usable_report_count,
+    dates: historyContext.dates,
+    referenced_files: historyContext.referenced_files,
+    reports: historyContext.reports.map((report) => ({
+      date: report.date,
+      dir: report.dir,
+      files: report.files,
+      model_version: report.data?.model_version ?? null,
+      top_conclusion: report.data?.top_conclusion ?? null,
+      funds: (report.data?.funds ?? []).map((fund) => ({
+        code: fund.code,
+        name: fund.name,
+        action_plan: fund.action_plan ?? null,
+        official_nav: fund.official_nav ?? null,
+      })),
+      sources_count:
+        (report.data?.source_pool?.recent?.length ?? 0) +
+        (report.data?.source_pool?.long_term?.length ?? 0),
+    })),
+  };
+}
+
+function sourceRegistryForOutput(registry) {
+  return {
+    version: registry.version,
+    updated_at: registry.updated_at,
+    principles: registry.principles ?? [],
+    source_count: registry.sources?.length ?? 0,
+    sources: (registry.sources ?? []).map((source) => ({
+      id: source.id,
+      name: source.name,
+      asset_scope: source.asset_scope,
+      category: source.category,
+      reliability: source.reliability,
+      priority: source.priority,
+      enabled: source.enabled,
+      collection_mode: source.collection_mode,
+      url: source.url,
+      use_cases: source.use_cases,
+      notes: source.notes,
+    })),
+  };
+}
+
+function longTermMemoryForOutput(longTermMemory) {
+  return {
+    path: longTermMemory.path,
+    loaded: longTermMemory.loaded,
+    created: longTermMemory.created,
+    bytes: Buffer.byteLength(longTermMemory.content ?? ""),
+    excerpt: longTermMemory.excerpt,
+  };
+}
+
 function marketByCode(marketFunds) {
   return new Map((marketFunds ?? []).map((fund) => [fund.code, fund]));
 }
@@ -1523,7 +2140,7 @@ function buildFundReviewEvidence(fund, portfolioContext) {
   };
 }
 
-function buildSemiconductorReview(sourcePool, funds, portfolioContext) {
+function buildSemiconductorReview(sourcePool, funds, portfolioContext, historyReview, longTermMemory) {
   const evidenceItems = evidenceItemsForImpact(sourcePool, "半导体");
   const semiconductorGroup = groupForKey(portfolioContext, "semiconductor");
   const coreAmount = amountForCode(portfolioContext, "012552");
@@ -1565,6 +2182,13 @@ function buildSemiconductorReview(sourcePool, funds, portfolioContext) {
     execution_impact: equipmentHot
       ? `012552 天弘芯片产业ETF联接A 当前盘中估算 ${formatPercent(core?.intraday_estimate?.change_pct)}；021532 天弘半导体设备指数A 盘中估算 ${formatPercent(equipment?.intraday_estimate?.change_pct)}、代理 ${formatPercent(equipment?.underlying_realtime?.change_pct)}，短期过热时应降低金额。`
       : "半导体今天没有触发明显追高约束，执行重点是控制金额、分批买入。",
+    history_impact:
+      historyReview?.effectiveness_pct == null
+        ? "最近 7 日样本不足，半导体金额仍以当次证据和仓位为主。"
+        : `最近判断有效率 ${historyReview.effectiveness_pct}% ，若半导体条目出现偏差，行动金额应转向谨慎档。`,
+    long_term_memory_impact: longTermMemory?.created
+      ? "长期记忆本轮首次创建，暂不单独改变半导体长期结论。"
+      : "长期记忆已读取，用于检查半导体长期结论是否与历史偏差冲突。",
     watch_items: [
       "AI 算力、先进存储和国产替代是否继续有订单与政策支撑。",
       "设备方向若继续大幅跑赢核心仓，需要警惕短期回撤。",
@@ -1573,7 +2197,7 @@ function buildSemiconductorReview(sourcePool, funds, portfolioContext) {
   };
 }
 
-function buildGoldReview(sourcePool, funds, portfolioContext) {
+function buildGoldReview(sourcePool, funds, portfolioContext, historyReview, longTermMemory) {
   const evidenceItems = evidenceItemsForImpact(sourcePool, "黄金");
   const goldGroup = groupForKey(portfolioContext, "gold_total");
   const currentGoldAmount = amountForCode(portfolioContext, "000218");
@@ -1618,6 +2242,13 @@ function buildGoldReview(sourcePool, funds, portfolioContext) {
       : `黄金合计约 ${formatAllocationPct(
           goldGroup?.allocation_pct
         )}，不是明显不足状态，今天优先维持防守仓比例。`,
+    history_impact:
+      historyReview?.effectiveness_pct == null
+        ? "最近 7 日样本不足，黄金仍按总防守仓比例和实际利率压力判断。"
+        : `最近判断有效率 ${historyReview.effectiveness_pct}% ，若黄金观望判断反复失效，需要重新检查 ETF 资金流和实际利率来源。`,
+    long_term_memory_impact: longTermMemory?.created
+      ? "长期记忆本轮首次创建，暂不单独改变黄金长期结论。"
+      : "长期记忆已读取，用于检查黄金防守仓结论和历史偏差。",
     watch_items: [
       "美元和美债实际利率是否继续压制黄金。",
       "央行购金和黄金 ETF 资金流是否延续支撑。",
@@ -1626,10 +2257,16 @@ function buildGoldReview(sourcePool, funds, portfolioContext) {
   };
 }
 
-function buildThesisReviews(sourcePool, funds, portfolioContext) {
+function buildThesisReviews(sourcePool, funds, portfolioContext, historyReview = null, longTermMemory = null) {
   return {
-    semiconductor: buildSemiconductorReview(sourcePool, funds, portfolioContext),
-    gold: buildGoldReview(sourcePool, funds, portfolioContext),
+    semiconductor: buildSemiconductorReview(
+      sourcePool,
+      funds,
+      portfolioContext,
+      historyReview,
+      longTermMemory
+    ),
+    gold: buildGoldReview(sourcePool, funds, portfolioContext, historyReview, longTermMemory),
   };
 }
 
@@ -1797,7 +2434,22 @@ function firstThesisEvidence(thesis) {
   return `长期证据：${item.source} ${item.time} 的信息显示，${item.logic_impact}`;
 }
 
-function actionEvidenceSupport(fund, thesis, portfolioContext, actionReason) {
+function historyEvidenceForFund(fund, historyReview) {
+  const items = (historyReview?.review_items ?? []).filter(
+    (item) => item.fund === fundFullName(fund)
+  );
+  if (items.length === 0) return null;
+  const effectiveCount = items.filter((item) => item.effective).length;
+  return `历史复盘：最近 ${items.length} 条 ${fundFullName(
+    fund
+  )} 判断中，${effectiveCount} 条暂时有效；${
+    historyReview.effectiveness_pct === null
+      ? "样本仍不足，不单独改变长期逻辑。"
+      : `整体判断有效率 ${historyReview.effectiveness_pct}% 。`
+  }`;
+}
+
+function actionEvidenceSupport(fund, thesis, portfolioContext, actionReason, historyReview) {
   const official = fund.official_nav;
   const evidence = [
     portfolioEvidenceForFund(fund, portfolioContext),
@@ -1813,8 +2465,26 @@ function actionEvidenceSupport(fund, thesis, portfolioContext, actionReason) {
   ];
   const thesisEvidence = firstThesisEvidence(thesis);
   if (thesisEvidence) evidence.push(thesisEvidence);
+  const historyEvidence = historyEvidenceForFund(fund, historyReview);
+  if (historyEvidence) evidence.push(historyEvidence);
   evidence.push(`判断逻辑：${actionReason}`);
   return evidence;
+}
+
+function historyAdjustedAmount(fund, recommendedAmount, tiers, historyReview) {
+  if (historyReview?.status !== "needs_adjustment") {
+    return recommendedAmount;
+  }
+
+  const fundName = fundFullName(fund);
+  const hasRecentMiss = (historyReview.inaccurate_points ?? []).some((item) =>
+    item.includes(fundName)
+  );
+  if (!hasRecentMiss || recommendedAmount <= 0) {
+    return recommendedAmount;
+  }
+
+  return tiers.find((tier) => tier.label === "谨慎档")?.amount ?? recommendedAmount;
 }
 
 function buildActionPlan(
@@ -1822,7 +2492,8 @@ function buildActionPlan(
   dataQuality,
   thesisReviews,
   portfolioContext,
-  executionContext
+  executionContext,
+  historyReview = null
 ) {
   const thesis = thesisForFund(fund, thesisReviews);
   const tone = marketToneForFund(fund);
@@ -1839,20 +2510,39 @@ function buildActionPlan(
     action,
     action_label: actionLabel(action),
     amount_tiers: amountTiers,
-    recommended_amount: roundedAmount(recommendedAmount),
+    recommended_amount: roundedAmount(
+      historyAdjustedAmount(fund, recommendedAmount, amountTiers, historyReview)
+    ),
     recommended_label:
-      roundedAmount(recommendedAmount) === 0
+      roundedAmount(
+        historyAdjustedAmount(fund, recommendedAmount, amountTiers, historyReview)
+      ) === 0
         ? "本次更建议 0 元"
-        : `本次更建议 ${formatAmount(roundedAmount(recommendedAmount))}`,
+        : `本次更建议 ${formatAmount(
+            roundedAmount(
+              historyAdjustedAmount(fund, recommendedAmount, amountTiers, historyReview)
+            )
+          )}`,
     recommended_tier_label: recommendedTierLabel,
-    amount_rationale: amountRationale,
+    amount_rationale:
+      historyReview?.status === "needs_adjustment" &&
+      historyAdjustedAmount(fund, recommendedAmount, amountTiers, historyReview) !==
+        recommendedAmount
+        ? `${amountRationale} 但最近复盘提示这只基金曾出现判断偏差，本次改用谨慎档。`
+        : amountRationale,
     reason,
     execution_context_used: {
       generated_at_local: executionContext.generated_at_local,
       order_window: executionContext.order_window,
       pending_order_status: executionContext.pending_order_status,
     },
-    evidence_support: actionEvidenceSupport(fund, thesis, portfolioContext, reason),
+    evidence_support: actionEvidenceSupport(
+      fund,
+      thesis,
+      portfolioContext,
+      reason,
+      historyReview
+    ),
   });
 
   if (!dataQuality.can_issue_today_execution || !hasCompleteRealtime(fund)) {
@@ -1969,7 +2659,8 @@ function addActionFields(
   dataQuality,
   thesisReviews,
   portfolioContext,
-  executionContext
+  executionContext,
+  historyReview = null
 ) {
   return funds.map((fund) => {
     const thesisStatus = thesisForFund(fund, thesisReviews);
@@ -1981,7 +2672,8 @@ function addActionFields(
         dataQuality,
         thesisReviews,
         portfolioContext,
-        executionContext
+        executionContext,
+        historyReview
       ),
     };
   });
@@ -2097,6 +2789,14 @@ async function main() {
   const outPath = getArg("--out", DEFAULT_OUT);
   const reportDate = getArg("--date", todayInShanghai());
 
+  const [designContext, sourceRegistry, longTermMemory, historyContext] =
+    await Promise.all([
+      readDesignContext(),
+      readSourceRegistry(),
+      ensureLongTermMemory(),
+      readHistoryContext(reportDate),
+    ]);
+
   const quoteSnapshot = await collectRealtimeQuoteSnapshot(FUND_CONFIG);
   const portfolioOnlyPositions = PORTFOLIO_INPUT.positions.filter(
     (position) => !position.tracked_for_execution
@@ -2110,34 +2810,75 @@ async function main() {
   const portfolioContext = buildPortfolioContext([...funds, ...portfolioOnlyFunds]);
   const executionContext = buildExecutionContext(generatedAt);
   const dataQuality = buildDataQuality(funds);
-  const thesisReviews = buildThesisReviews(infoItems, funds, portfolioContext);
-  const analyzedFunds = addActionFields(
+  const sourcePool = {
+    recent: infoItems.recent,
+    long_term: infoItems.long_term,
+  };
+  let thesisReviews = buildThesisReviews(
+    sourcePool,
+    funds,
+    portfolioContext,
+    null,
+    longTermMemory
+  );
+  const preliminaryFunds = addActionFields(
     funds,
     dataQuality,
     thesisReviews,
     portfolioContext,
     executionContext
   );
+  const historyReview = buildHistoryReview(historyContext, preliminaryFunds);
+  thesisReviews = buildThesisReviews(
+    sourcePool,
+    funds,
+    portfolioContext,
+    historyReview,
+    longTermMemory
+  );
+  const analyzedFunds = addActionFields(
+    funds,
+    dataQuality,
+    thesisReviews,
+    portfolioContext,
+    executionContext,
+    historyReview
+  );
   const topConclusion = buildTopConclusion(
     dataQuality,
     thesisReviews,
     analyzedFunds
   );
+  const sourceSelection = buildSourceSelection(
+    sourceRegistry,
+    sourcePool,
+    infoItems.info_source_errors,
+    historyReview,
+    longTermMemory
+  );
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
-    model_version: "long_term_review_v5",
+    model_version: MODEL_VERSION,
     generated_at: generatedAt,
+    automation_context: {
+      design_document: designContext,
+      source_registry_path: SOURCE_REGISTRY_PATH,
+      long_term_memory_path: LONG_TERM_MEMORY_PATH,
+      recent_report_limit: RECENT_REPORT_LIMIT,
+    },
     data_quality: dataQuality,
     portfolio_context: portfolioContext,
     execution_context: executionContext,
+    history_context: historyContextForOutput(historyContext),
+    history_review: historyReview,
+    long_term_memory: longTermMemoryForOutput(longTermMemory),
     top_conclusion: topConclusion,
     thesis_reviews: thesisReviews,
     funds: analyzedFunds,
-    source_pool: {
-      recent: infoItems.recent,
-      long_term: infoItems.long_term,
-    },
+    source_registry: sourceRegistryForOutput(sourceRegistry),
+    source_selection: sourceSelection,
+    source_pool: sourcePool,
     info_source_errors: infoItems.info_source_errors,
   };
 

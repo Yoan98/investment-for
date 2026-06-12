@@ -1,17 +1,30 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const DEFAULT_INPUT = path.join("reports", "latest", "data.json");
 const DEFAULT_REPORT = path.join("reports", "latest", "report.html");
 const DEFAULT_SOURCES = path.join("reports", "latest", "sources.md");
-const EXPECTED_MODEL_VERSION = "long_term_review_v5";
+const EXPECTED_MODEL_VERSION = "long_term_review_v6";
+const REPORTS_DIR = "reports";
+const LONG_TERM_MEMORY_PATH = path.join(REPORTS_DIR, "long-term-memory.md");
+const RECENT_REPORT_LIMIT = 7;
+const DATE_DIR_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function getArg(name, fallback = null) {
   const index = process.argv.indexOf(name);
   if (index === -1) return fallback;
   return process.argv[index + 1] ?? fallback;
+}
+
+async function readTextIfExists(filePath, fallback = "") {
+  try {
+    return await readFile(filePath, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return fallback;
+    throw error;
+  }
 }
 
 function toNumber(value) {
@@ -176,6 +189,8 @@ function renderThesisReview(review) {
         <p><b>是否改变配置逻辑：</b>${escapeHtml(review?.allocation_impact ?? "未知")}</p>
         <p><b>当前仓位含义：</b>${escapeHtml(review?.portfolio_impact ?? "未知")}</p>
         <p><b>对今天动作和金额的影响：</b>${escapeHtml(review?.execution_impact ?? "未知")}</p>
+        <p><b>历史复盘影响：</b>${escapeHtml(review?.history_impact ?? "暂无历史复盘影响。")}</p>
+        <p><b>长期记忆影响：</b>${escapeHtml(review?.long_term_memory_impact ?? "暂无长期记忆影响。")}</p>
       </div>
       <h4>后续观察项</h4>
       ${listHtml(review?.watch_items)}
@@ -239,6 +254,83 @@ function renderActionCards(funds) {
       `;
     })
     .join("");
+}
+
+function formatEffectiveness(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return "样本不足";
+  return `${parsed}%`;
+}
+
+function renderHistoryReview(review) {
+  const items = Array.isArray(review?.review_items) ? review.review_items : [];
+  const itemRows = items
+    .slice(0, 8)
+    .map((item) => `
+      <tr>
+        <td>${escapeHtml(item.date)}</td>
+        <td>${escapeHtml(item.fund)}</td>
+        <td>${escapeHtml(item.prior_action)} ${escapeHtml(formatAmount(item.prior_amount))}</td>
+        <td>${escapeHtml(item.current_action)}</td>
+        <td>${escapeHtml(item.effective ? "暂时有效" : "需要修正")}</td>
+        <td>${escapeHtml(item.reason)}</td>
+      </tr>
+    `)
+    .join("");
+
+  return `
+    <section>
+      <h2>近 7 日判断复盘</h2>
+      <p class="section-note">这里复盘的是判断是否仍然站得住，不是预测准确率。样本不足时不硬算百分比。</p>
+      <div class="history-grid">
+        <article class="history-panel">
+          <p class="eyebrow">判断有效率</p>
+          <p class="history-score">${escapeHtml(formatEffectiveness(review?.effectiveness_pct))}</p>
+        </article>
+        <article class="history-panel">
+          <p class="eyebrow">复盘样本</p>
+          <p class="history-score">${escapeHtml(String(review?.sample_size ?? 0))} 条</p>
+        </article>
+      </div>
+      <p><b>复盘口径：</b>${escapeHtml(review?.basis ?? "暂无历史复盘口径。")}</p>
+      <div class="impact-grid">
+        <div>
+          <h4>判断有效的地方</h4>
+          ${listHtml(review?.accurate_points)}
+        </div>
+        <div>
+          <h4>判断不准确或证据不足的地方</h4>
+          ${listHtml(review?.inaccurate_points)}
+        </div>
+        <div>
+          <h4>后续建议修正</h4>
+          ${listHtml(review?.follow_up_adjustments)}
+        </div>
+      </div>
+      ${
+        itemRows
+          ? `<details class="evidence-details">
+              <summary>展开逐条复盘</summary>
+              <div class="table-wrap compact-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>日期</th>
+                      <th>基金</th>
+                      <th>当时动作</th>
+                      <th>今天动作</th>
+                      <th>结论</th>
+                      <th>原因</th>
+                    </tr>
+                  </thead>
+                  <tbody>${itemRows}</tbody>
+                </table>
+              </div>
+            </details>`
+          : "<p class=\"muted\">暂无可逐条复盘的日期报告。</p>"
+      }
+    </section>
+  `;
 }
 
 function renderPortfolioContext(portfolioContext) {
@@ -305,15 +397,58 @@ function renderPortfolioContext(portfolioContext) {
   `;
 }
 
+function sourceStatusLabel(status) {
+  if (status === "collected") return "已采集";
+  if (status === "selected_but_no_current_signal") return "已选但本轮无有效信号";
+  if (status === "registered_not_collected") return "注册候选，未采集";
+  return status ?? "未知";
+}
+
+function renderSourceSelection(data) {
+  const selection = data.source_selection ?? {};
+  const selected = Array.isArray(selection.selected_sources)
+    ? selection.selected_sources
+    : [];
+  const collected = selected.filter((source) => source.collection_status === "collected");
+  const notCollected = selected.filter((source) => source.collection_status !== "collected");
+  const historyContext = data.history_context ?? {};
+  const memory = data.long_term_memory ?? {};
+  const sourceErrors = Array.isArray(data.info_source_errors)
+    ? data.info_source_errors
+    : [];
+
+  return `
+    <section class="footer-note">
+      <h2>来源与不确定性</h2>
+      <p><b>本轮来源选择：</b>${escapeHtml(selection.strategy ?? "按来源注册表选择可用来源。")}</p>
+      <p><b>已进入证据的来源：</b>${escapeHtml(
+        collected.length > 0
+          ? collected.map((source) => source.name).join("、")
+          : "本轮没有抓到可进入证据的长期来源。"
+      )}</p>
+      <p><b>选中但未进入证据：</b>${escapeHtml(
+        notCollected.length > 0
+          ? notCollected
+              .map((source) => `${source.name}（${sourceStatusLabel(source.collection_status)}）`)
+              .join("、")
+          : "无"
+      )}</p>
+      <p><b>历史报告：</b>已读取 ${escapeHtml(String(historyContext.usable_report_count ?? 0))} 份可用日期报告，最近目录：${escapeHtml((historyContext.dates ?? []).join("、") || "无")}。</p>
+      <p><b>长期记忆：</b>${escapeHtml(memory.loaded ? `已读取 ${memory.path}` : "未读取")}；${escapeHtml(memory.created ? "本轮首次创建。" : "已用于长期逻辑复核。")}</p>
+      <p><b>金额建议说明：</b>本次金额由当次行情位置、长期证据、基金角色、组合仓位、最近复盘和长期记忆共同推导，不使用固定默认比例。</p>
+      <p><b>生成上下文：</b>报告生成器已接收交易确认时间差、未确认买入状态和下一交易日风险作为背景输入；这些事实不作为固定规则展示。</p>
+      <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤动作金额，不能替代正式净值或长期基本面判断。</p>
+      <p><b>数据缺口：</b>${escapeHtml(sourceErrors.length > 0 ? sourceErrors.join("；") : "本次未发现关键数据抓取缺口。")}</p>
+    </section>
+  `;
+}
+
 function reportHtml(data) {
   assertCurrentModel(data);
 
   const generatedAt = toChinaString(data.generated_at);
   const quality = data.data_quality;
   const top = data.top_conclusion ?? {};
-  const sourceErrors = Array.isArray(data.info_source_errors)
-    ? data.info_source_errors
-    : [];
 
   return `<!doctype html>
 <html lang="zh-CN">
@@ -359,7 +494,7 @@ function reportHtml(data) {
     a { color: var(--blue); }
     ul { margin: 0; padding-left: 20px; }
     li + li { margin-top: 5px; }
-    .meta-row, .review-grid, .portfolio-grid, .action-list, .tier-grid { display: grid; gap: 14px; }
+    .meta-row, .review-grid, .portfolio-grid, .action-list, .tier-grid, .history-grid { display: grid; gap: 14px; }
     .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
     .meta-pill {
       border-left: 4px solid var(--blue);
@@ -419,12 +554,14 @@ function reportHtml(data) {
       margin-bottom: 4px;
     }
     .review-grid { grid-template-columns: 1fr; }
-    .review-card, .portfolio-panel, .action-card, .tier {
+    .review-card, .portfolio-panel, .action-card, .tier, .history-panel {
       border: 1px solid var(--line);
       background: var(--paper);
       border-radius: 12px;
       padding: 18px;
     }
+    .history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 12px 0 14px; }
+    .history-score { font-size: 28px; font-weight: 800; margin-bottom: 0; }
     .lead { font-size: 17px; }
     .card-head {
       display: flex;
@@ -481,7 +618,7 @@ function reportHtml(data) {
     @media (max-width: 780px) {
       main { width: min(100% - 18px, 1120px); margin-top: 12px; }
       section { padding: 18px; border-radius: 12px; }
-      .meta-row, .portfolio-grid, .impact-grid, .tier-grid, .hero-amounts, .action-keyline { grid-template-columns: 1fr; }
+      .meta-row, .portfolio-grid, .impact-grid, .tier-grid, .hero-amounts, .action-keyline, .history-grid { grid-template-columns: 1fr; }
       .card-head { flex-direction: column; }
     }
   </style>
@@ -520,6 +657,8 @@ function reportHtml(data) {
     <div class="action-list">${renderActionCards(data.funds ?? [])}</div>
   </section>
 
+  ${renderHistoryReview(data.history_review)}
+
   <section>
     <h2>长期逻辑复核</h2>
     <div class="review-grid">
@@ -528,14 +667,7 @@ function reportHtml(data) {
     </div>
   </section>
 
-  <section class="footer-note">
-    <h2>来源与不确定性</h2>
-    <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；基金表现数据来自东方财富历史净值接口；长期逻辑复核证据来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
-    <p><b>金额建议说明：</b>本次金额由当次行情位置、长期证据、基金角色和组合仓位共同推导，不使用固定默认比例。</p>
-    <p><b>生成上下文：</b>报告生成器已接收交易确认时间差、未确认买入状态和下一交易日风险作为背景输入；这些事实不作为固定规则展示。</p>
-    <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤动作金额，不能替代正式净值或长期基本面判断。</p>
-    <p><b>数据缺口：</b>${escapeHtml(sourceErrors.length > 0 ? sourceErrors.join("；") : "本次未发现关键数据抓取缺口。")}</p>
-  </section>
+  ${renderSourceSelection(data)}
 
   ${renderPortfolioContext(data.portfolio_context)}
 </main>
@@ -607,8 +739,65 @@ function amountGuidanceBlock(data) {
     return `- ${fundFullName(fund)}：${plan.action_label ?? "未知"}，本次更建议 ${formatAmount(plan.recommended_amount ?? 0)}；档位：${tiers || "无"}`;
   });
 
-  return `- 规则说明：不使用固定默认比例；金额由当次行情、长期证据、基金角色、组合仓位和生成上下文共同推导。
+  return `- 说明：不使用固定默认比例；金额由当次行情、长期证据、基金角色、组合仓位、最近复盘、长期记忆和生成上下文共同推导。
 ${lines.join("\n")}`;
+}
+
+function sourceSelectionMarkdown(data) {
+  const registry = data.source_registry ?? {};
+  const selection = data.source_selection ?? {};
+  const selected = selection.selected_sources ?? [];
+  const proposed = selection.proposed_sources ?? [];
+
+  const selectedLines = selected.map((source) => `- ${source.name}（${source.id}）
+  - 类别：${source.category}
+  - 可靠性：${source.reliability}
+  - 本轮状态：${sourceStatusLabel(source.collection_status)}
+  - 选择原因：${source.selected_reason}
+  - 链接：${source.url}`);
+
+  const proposedLines = proposed.map((source) => `- ${source.name}
+  - 用途：${source.use_case}
+  - 可靠性：${source.reliability}
+  - 接入方式：${source.proposed_collection}
+  - 原因：${source.reason}`);
+
+  return `- 来源注册表版本：${registry.version ?? selection.registry_version ?? "未知"}
+- 来源注册表来源数：${registry.source_count ?? "未知"}
+- 本轮策略：${selection.strategy ?? "未知"}
+
+### 本轮选中来源
+
+${selectedLines.join("\n") || "- 无"}
+
+### 本轮候选新增来源
+
+${proposedLines.join("\n") || "- 无"}`;
+}
+
+function historyContextMarkdown(data) {
+  const context = data.history_context ?? {};
+  const files = context.referenced_files ?? [];
+  const fileLines = files.map((file) => `- ${file.path}：${file.exists ? "存在" : "缺失"}，${file.bytes ?? 0} bytes`);
+  const review = data.history_review ?? {};
+
+  return `- 最近日期目录数量：${context.report_count ?? 0}
+- 可用日期报告数量：${context.usable_report_count ?? 0}
+- 日期：${(context.dates ?? []).join("、") || "无"}
+- 判断有效率：${formatEffectiveness(review.effectiveness_pct)}
+- 样本数：${review.sample_size ?? 0}
+- 复盘口径：${review.basis ?? "无"}
+- 文件：
+${fileLines.join("\n") || "- 暂无历史文件"}`;
+}
+
+function longTermMemoryMarkdown(data) {
+  const memory = data.long_term_memory ?? {};
+  return `- 路径：${memory.path ?? "未知"}
+- 是否读取：${memory.loaded ? "是" : "否"}
+- 是否本轮创建：${memory.created ? "是" : "否"}
+- 文件大小：${memory.bytes ?? 0} bytes
+- 摘要：${memory.excerpt ?? "无"}`;
 }
 
 function sourcesMarkdown(data) {
@@ -642,6 +831,10 @@ function sourcesMarkdown(data) {
 
 ${liveBlocks}
 
+## 本轮来源选择
+
+${sourceSelectionMarkdown(data)}
+
 ## 基金表现数据来源
 
 ${performanceBlocks}
@@ -649,6 +842,14 @@ ${performanceBlocks}
 ## 长期逻辑复核证据
 
 ${reviewEvidenceBlocks(data) || "- 本次未抓到可写入长期逻辑复核的官方事件。"}
+
+## 最近 7 日历史报告
+
+${historyContextMarkdown(data)}
+
+## 长期记忆
+
+${longTermMemoryMarkdown(data)}
 
 ## 组合仓位来源
 
@@ -674,6 +875,158 @@ function stripTrailingWhitespace(value) {
   return String(value).replace(/[ \t]+$/gm, "");
 }
 
+async function listDatedReportDirs() {
+  let entries = [];
+  try {
+    entries = await readdir(REPORTS_DIR, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === "ENOENT") return [];
+    throw error;
+  }
+
+  return entries
+    .filter((entry) => entry.isDirectory() && DATE_DIR_PATTERN.test(entry.name))
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+}
+
+async function writeDatedArtifacts(data, inputPath, reportHtmlText, sourcesText) {
+  const datedDir = path.join(REPORTS_DIR, data.report_date);
+  await mkdir(datedDir, { recursive: true });
+  await copyFile(inputPath, path.join(datedDir, "data.json"));
+  await writeFile(path.join(datedDir, "report.html"), `${reportHtmlText}\n`, "utf8");
+  await writeFile(path.join(datedDir, "sources.md"), `${sourcesText}\n`, "utf8");
+  return datedDir;
+}
+
+async function readPrunedReportSummary(dirName) {
+  const dirPath = path.join(REPORTS_DIR, dirName);
+  const [dataRaw, sourcesRaw] = await Promise.all([
+    readTextIfExists(path.join(dirPath, "data.json"), ""),
+    readTextIfExists(path.join(dirPath, "sources.md"), ""),
+  ]);
+  let data = null;
+  try {
+    data = dataRaw ? JSON.parse(dataRaw) : null;
+  } catch {
+    data = null;
+  }
+
+  return {
+    date: dirName,
+    headline: data?.top_conclusion?.headline ?? "未知结论",
+    action_summary: data?.top_conclusion?.action_summary ?? "未知动作",
+    history_effectiveness_pct: data?.history_review?.effectiveness_pct ?? null,
+    source_excerpt: sourcesRaw.slice(0, 600),
+  };
+}
+
+function extractMemoryEntries(existingText) {
+  const marker = "## 最近压缩更新";
+  const index = existingText.indexOf(marker);
+  if (index === -1) return [];
+  const tail = existingText.slice(index + marker.length);
+  return tail
+    .split(/\n(?=### \d{4}-\d{2}-\d{2})/g)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith("### "));
+}
+
+function markdownList(items, fallback = "暂无。") {
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (list.length === 0) return `- ${fallback}`;
+  return list.map((item) => `- ${item}`).join("\n");
+}
+
+function buildMemoryEntry(data, prunedReports) {
+  const actions = (data.funds ?? [])
+    .map((fund) => `${fundFullName(fund)} ${fund.action_plan?.action_label ?? "未知"} ${formatAmount(fund.action_plan?.recommended_amount ?? 0)}`)
+    .join("；");
+  const prunedText =
+    prunedReports.length > 0
+      ? `压缩并删除旧目录：${prunedReports.map((report) => report.date).join("、")}。`
+      : "本轮没有超过 7 日的旧目录需要删除。";
+
+  return `### ${data.report_date}
+
+- 今日结论：${data.top_conclusion?.headline ?? "未知"}。
+- 今日动作：${actions || "无"}。
+- 判断有效率：${formatEffectiveness(data.history_review?.effectiveness_pct)}，样本 ${data.history_review?.sample_size ?? 0} 条。
+- 有效判断：${(data.history_review?.accurate_points ?? []).slice(0, 2).join("；") || "暂无足够样本。"}
+- 偏差判断：${(data.history_review?.inaccurate_points ?? []).slice(0, 2).join("；") || "暂无明显偏差。"}
+- 来源可靠性：${(data.source_selection?.source_quality_notes ?? []).join("；") || "暂无来源沉淀。"}
+- 旧报告处理：${prunedText}`;
+}
+
+function buildMemoryDocument(data, existingText, prunedReports) {
+  const previousEntries = extractMemoryEntries(existingText)
+    .filter((entry) => !entry.startsWith(`### ${data.report_date}`))
+    .slice(0, 19);
+  const newEntry = buildMemoryEntry(data, prunedReports);
+  const entries = [newEntry, ...previousEntries].slice(0, 20);
+  const selectedSources = data.source_selection?.selected_sources ?? [];
+  const uncollectedSources = selectedSources
+    .filter((source) => source.collection_status !== "collected")
+    .map((source) => `${source.name}：${sourceStatusLabel(source.collection_status)}，暂不进入证据。`);
+  const prunedNoise = prunedReports.map(
+    (report) => `${report.date}：已压缩进长期记忆并删除日期目录，保留结论和动作摘要。`
+  );
+
+  return `# 长期记忆
+
+> 本文件由日报自动化在每次生成报告后压缩、去噪并重写。不要手工追加流水账。
+
+## 当前长期结论
+
+- 半导体：${data.thesis_reviews?.semiconductor?.conclusion ?? "暂无。"}
+- 黄金：${data.thesis_reviews?.gold?.conclusion ?? "暂无。"}
+
+## 已验证有效的判断
+
+${markdownList(data.history_review?.accurate_points)}
+
+## 历史判断偏差
+
+${markdownList(data.history_review?.inaccurate_points)}
+
+## 资金与仓位经验
+
+- ${data.portfolio_context?.summary ?? "暂无组合摘要。"}
+- 今日动作：${data.top_conclusion?.action_summary ?? "暂无。"}
+- 金额经验：${data.top_conclusion?.focus?.find((item) => item.includes("金额")) ?? "金额继续由当次证据、仓位和历史复盘共同推导。"}
+
+## 来源可靠性
+
+${markdownList(data.source_selection?.source_quality_notes)}
+
+## 已删除或降权的噪音
+
+${markdownList([...uncollectedSources, ...prunedNoise], "本轮未发现需要删除或降权的噪音。")}
+
+## 最近压缩更新
+
+${entries.join("\n\n")}
+`;
+}
+
+async function updateLongTermMemory(data, prunedReports) {
+  const existingText = await readTextIfExists(LONG_TERM_MEMORY_PATH, "");
+  const nextText = buildMemoryDocument(data, existingText, prunedReports);
+  await mkdir(path.dirname(LONG_TERM_MEMORY_PATH), { recursive: true });
+  await writeFile(LONG_TERM_MEMORY_PATH, `${stripTrailingWhitespace(nextText)}\n`, "utf8");
+}
+
+async function pruneOldReportDirs() {
+  const dirs = await listDatedReportDirs();
+  const pruneDirs = dirs.slice(RECENT_REPORT_LIMIT);
+  const summaries = await Promise.all(pruneDirs.map(readPrunedReportSummary));
+  for (const dirName of pruneDirs) {
+    await rm(path.join(REPORTS_DIR, dirName), { recursive: true, force: true });
+  }
+  return summaries;
+}
+
 async function main() {
   const inputPath = getArg("--input", DEFAULT_INPUT);
   const reportPath = getArg("--report", DEFAULT_REPORT);
@@ -681,10 +1034,17 @@ async function main() {
 
   const raw = await readFile(inputPath, "utf8");
   const data = JSON.parse(raw);
+  assertCurrentModel(data);
+  const html = stripTrailingWhitespace(reportHtml(data));
+  const sources = stripTrailingWhitespace(sourcesMarkdown(data));
 
   await mkdir(path.dirname(reportPath), { recursive: true });
-  await writeFile(reportPath, `${stripTrailingWhitespace(reportHtml(data))}\n`, "utf8");
-  await writeFile(sourcesPath, `${stripTrailingWhitespace(sourcesMarkdown(data))}\n`, "utf8");
+  await writeFile(reportPath, `${html}\n`, "utf8");
+  await writeFile(sourcesPath, `${sources}\n`, "utf8");
+
+  await writeDatedArtifacts(data, inputPath, html, sources);
+  const prunedReports = await pruneOldReportDirs();
+  await updateLongTermMemory(data, prunedReports);
 }
 
 main().catch((error) => {
