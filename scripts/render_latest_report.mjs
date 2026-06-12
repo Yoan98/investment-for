@@ -6,7 +6,7 @@ import path from "node:path";
 const DEFAULT_INPUT = path.join("reports", "latest", "data.json");
 const DEFAULT_REPORT = path.join("reports", "latest", "report.html");
 const DEFAULT_SOURCES = path.join("reports", "latest", "sources.md");
-const EXPECTED_MODEL_VERSION = "long_term_review_v2";
+const EXPECTED_MODEL_VERSION = "long_term_review_v3";
 
 function getArg(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -42,6 +42,18 @@ function changeWord(value) {
   if (parsed > 0) return `上涨 ${formatPercent(parsed)}`;
   if (parsed < 0) return `下跌 ${formatPercent(parsed)}`;
   return `持平 ${formatPercent(parsed)}`;
+}
+
+function formatAmount(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return "未知金额";
+  return `${Math.round(parsed).toLocaleString("zh-CN")} 元`;
+}
+
+function formatAllocationPct(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return "未知";
+  return `${parsed.toFixed(1)}%`;
 }
 
 function formatFreshness(value) {
@@ -138,6 +150,7 @@ function renderFundEvidence(items) {
     .map((item) => `
       <div class="fund-row">
         <p><b>${escapeHtml(item.code)} ${escapeHtml(item.name)}</b>｜${escapeHtml(item.role)}</p>
+        <p>${escapeHtml(item.position_review)}</p>
         <p>${escapeHtml(item.official_review)}</p>
         <p>${escapeHtml(item.intraday_review)}</p>
         <p class="muted">${escapeHtml(item.interpretation)}</p>
@@ -153,62 +166,79 @@ function renderThesisReview(review) {
         <h3>${escapeHtml(review?.title ?? "长期逻辑")}</h3>
         <span class="badge ${statusClass(review?.status)}">${escapeHtml(review?.status_label ?? statusLabel(review?.status))}</span>
       </div>
-      <p><b>结论：</b>${escapeHtml(review?.conclusion ?? "暂无结论。")}</p>
-      <h4>${escapeHtml(review?.review_window ?? "最近 1-2 个月")}发生了什么</h4>
-      ${listHtml(review?.recent_developments)}
-      <h4>原始信息证据</h4>
-      ${renderEvidenceItems(review?.evidence_items)}
-      <h4>结合基金表现怎么看</h4>
-      ${renderFundEvidence(review?.fund_evidence)}
+      <p class="lead"><b>结论：</b>${escapeHtml(review?.conclusion ?? "暂无结论。")}</p>
       <div class="impact-grid">
         <p><b>是否改变配置逻辑：</b>${escapeHtml(review?.allocation_impact ?? "未知")}</p>
+        <p><b>当前仓位含义：</b>${escapeHtml(review?.portfolio_impact ?? "未知")}</p>
         <p><b>对今天执行节奏的影响：</b>${escapeHtml(review?.execution_impact ?? "未知")}</p>
       </div>
       <h4>后续观察项</h4>
       ${listHtml(review?.watch_items)}
+      <details class="evidence-details">
+        <summary>展开证据和基金表现</summary>
+        <h4>${escapeHtml(review?.review_window ?? "最近 1-2 个月")}发生了什么</h4>
+        ${listHtml(review?.recent_developments)}
+        <h4>原始信息证据</h4>
+        ${renderEvidenceItems(review?.evidence_items)}
+        <h4>结合基金表现怎么看</h4>
+        ${renderFundEvidence(review?.fund_evidence)}
+      </details>
     </article>
   `;
 }
 
-function buildExecutionSignals(data) {
-  const funds = data.funds ?? [];
-  const risks = funds.flatMap((fund) => fund.execution_plan?.stop_conditions ?? []);
-  const keyEvidence = funds.map((fund) => {
-    const evidence = fund.execution_plan?.evidence ?? [];
-    return `${fund.code}：${evidence.slice(0, 2).join("；")}`;
-  });
+function renderPortfolioContext(portfolioContext) {
+  const groups = Array.isArray(portfolioContext?.groups)
+    ? portfolioContext.groups
+    : [];
+  const positions = Array.isArray(portfolioContext?.positions)
+    ? portfolioContext.positions
+    : [];
+  const positionRows = positions
+    .map((position) => `
+      <tr>
+        <td>${escapeHtml(position.code)}</td>
+        <td>${escapeHtml(position.name)}</td>
+        <td>${escapeHtml(position.role)}</td>
+        <td>${escapeHtml(formatAmount(position.amount))}</td>
+        <td>${escapeHtml(formatAllocationPct(position.allocation_pct))}</td>
+        <td>${escapeHtml(position.allow_new_money ? "可新增" : "只保留")}</td>
+        <td>${escapeHtml(position.note ?? "")}</td>
+      </tr>
+    `)
+    .join("");
 
-  return {
-    conclusion: data.top_conclusion?.action_summary ?? "未知",
-    trigger:
-      "长期复核决定方向是否继续成立，基金盘中估算和底层代理决定今天执行幅度。",
-    keyEvidence,
-    risks,
-  };
-}
-
-function renderExecutionSignals(data) {
-  const signals = buildExecutionSignals(data);
   return `
     <section>
-      <h2>今日执行信号汇总</h2>
-      <div class="signal-grid">
-        <article class="signal-panel">
-          <h3>执行结论</h3>
-          <p>${escapeHtml(signals.conclusion)}</p>
-        </article>
-        <article class="signal-panel">
-          <h3>触发原因</h3>
-          <p>${escapeHtml(signals.trigger)}</p>
-        </article>
-        <article class="signal-panel">
-          <h3>关键证据</h3>
-          ${listHtml(signals.keyEvidence)}
-        </article>
-        <article class="signal-panel">
-          <h3>主要风险</h3>
-          ${listHtml(signals.risks)}
-        </article>
+      <h2>组合仓位概览</h2>
+      <p class="section-note">仓位来自用户手工提供，当前用于约束每日新增节奏。</p>
+      <div class="portfolio-grid">
+        ${groups
+          .map((group) => `
+            <article class="portfolio-panel">
+              <h3>${escapeHtml(group.label)}</h3>
+              <p class="amount">${escapeHtml(formatAmount(group.amount))}</p>
+              <p>占总资产约 ${escapeHtml(formatAllocationPct(group.allocation_pct))}</p>
+              <p class="muted">${escapeHtml(group.interpretation ?? "")}</p>
+            </article>
+          `)
+          .join("")}
+      </div>
+      <div class="table-wrap compact-table">
+        <table>
+          <thead>
+            <tr>
+              <th>代码</th>
+              <th>名称</th>
+              <th>角色</th>
+              <th>金额</th>
+              <th>占比</th>
+              <th>新增状态</th>
+              <th>备注</th>
+            </tr>
+          </thead>
+          <tbody>${positionRows}</tbody>
+        </table>
       </div>
     </section>
   `;
@@ -232,6 +262,8 @@ function renderActionCards(funds) {
             <p><b>节奏：</b>${escapeHtml(plan.cadence ?? "未知")}</p>
           </div>
           <p><b>原因：</b>${escapeHtml(plan.reason ?? "暂无原因。")}</p>
+          <p><b>仓位约束：</b>${escapeHtml(plan.portfolio_constraint ?? "暂无仓位约束。")}</p>
+          <p><b>申购延迟：</b>${escapeHtml(plan.settlement_note ?? "暂无申购延迟说明。")}</p>
           <h4>证据</h4>
           ${listHtml(plan.evidence)}
           <h4>停止条件</h4>
@@ -337,7 +369,7 @@ function reportHtml(data) {
     a { color: var(--blue); }
     ul { margin: 0; padding-left: 20px; }
     li + li { margin-top: 5px; }
-    .meta-row, .review-grid, .signal-grid, .action-list { display: grid; gap: 14px; }
+    .meta-row, .review-grid, .portfolio-grid, .action-list { display: grid; gap: 14px; }
     .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
     .meta-pill {
       border-left: 4px solid var(--blue);
@@ -372,12 +404,13 @@ function reportHtml(data) {
     .badge.watch { background: var(--watch); }
     .badge.stop { background: var(--stop); }
     .review-grid { grid-template-columns: 1fr; }
-    .review-card, .signal-panel, .action-card {
+    .review-card, .portfolio-panel, .action-card {
       border: 1px solid var(--line);
       background: var(--paper);
       border-radius: 12px;
       padding: 18px;
     }
+    .lead { font-size: 17px; }
     .card-head {
       display: flex;
       justify-content: space-between;
@@ -392,15 +425,28 @@ function reportHtml(data) {
     }
     .impact-grid, .action-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px 16px;
       margin-top: 14px;
     }
-    .signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .portfolio-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .portfolio-panel .amount { font-size: 24px; font-weight: 800; margin-bottom: 2px; }
+    .evidence-details {
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+    .evidence-details summary {
+      cursor: pointer;
+      color: var(--blue);
+      font-weight: 700;
+    }
     .action-list { grid-template-columns: 1fr; }
     .action-card { border-left: 5px solid var(--blue); }
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
     table { width: 100%; border-collapse: collapse; min-width: 980px; font-size: 14px; }
+    .compact-table { margin-top: 14px; }
+    .compact-table table { min-width: 860px; }
     th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
     th { background: #e9efed; }
     tr:last-child td { border-bottom: 0; }
@@ -408,7 +454,7 @@ function reportHtml(data) {
     @media (max-width: 780px) {
       main { width: min(100% - 18px, 1120px); margin-top: 12px; }
       section { padding: 18px; border-radius: 12px; }
-      .meta-row, .signal-grid, .impact-grid, .action-grid { grid-template-columns: 1fr; }
+      .meta-row, .portfolio-grid, .impact-grid, .action-grid { grid-template-columns: 1fr; }
       .card-head { flex-direction: column; }
     }
   </style>
@@ -427,9 +473,13 @@ function reportHtml(data) {
       <span>长期逻辑总状态</span>
     </div>
     <h1>${escapeHtml(top.headline ?? "长期逻辑状态未知")}</h1>
+    <p><b>组合仓位：</b>${escapeHtml(top.portfolio_summary ?? "未知")}</p>
     <p><b>今日执行：</b>${escapeHtml(top.action_summary ?? "未知")}</p>
+    <p><b>申购确认：</b>${escapeHtml(data.settlement_context?.execution_timing_label ?? "未知")}</p>
     <p class="section-note"><b>一句话原因：</b>${escapeHtml(top.reason ?? "长期复核和执行过滤器共同决定今天节奏。")}</p>
   </section>
+
+  ${renderPortfolioContext(data.portfolio_context)}
 
   <section>
     <h2>长期逻辑复核</h2>
@@ -438,8 +488,6 @@ function reportHtml(data) {
       ${renderThesisReview(data.thesis_reviews?.gold ?? {})}
     </div>
   </section>
-
-  ${renderExecutionSignals(data)}
 
   <section>
     <h2>具体基金行动卡</h2>
@@ -451,6 +499,8 @@ function reportHtml(data) {
   <section class="footer-note">
     <h2>来源与不确定性</h2>
     <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；正式净值复核来自东方财富历史净值接口；长期逻辑复核证据来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
+    <p><b>组合仓位来源：</b>总资产和基金持仓来自用户手工提供，002611 只计入黄金存量仓，不输出行动卡。</p>
+    <p><b>申购延迟：</b>${escapeHtml((data.settlement_context?.notes ?? []).join(" "))}</p>
     <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤执行节奏，不能替代正式净值或长期基本面判断。</p>
     <p><b>数据缺口：</b>${escapeHtml(sourceErrors.length > 0 ? sourceErrors.join("；") : "本次未发现关键数据抓取缺口。")}</p>
   </section>
@@ -490,6 +540,29 @@ function reviewEvidenceBlocks(data) {
     .join("\n\n");
 }
 
+function portfolioSourceBlock(data) {
+  const context = data.portfolio_context ?? {};
+  const positionBlocks = (context.positions ?? [])
+    .map((position) => `- ${position.code} ${position.name}：${formatAmount(position.amount)}，占比约 ${formatAllocationPct(position.allocation_pct)}，新增状态：${position.allow_new_money ? "可新增" : "只保留"}，备注：${position.note ?? "无"}`)
+    .join("\n");
+
+  return `- 来源名称：用户手工提供的组合仓位
+- 总资产：${formatAmount(context.total_assets)}
+- 口径：${context.as_of ?? "未知"}
+- 持仓明细：
+${positionBlocks || "- 未提供持仓明细"}
+- 可信度备注：用于约束执行节奏；自动化尚未接入账户实时持仓，金额需要人工更新。`;
+}
+
+function settlementSourceBlock(data) {
+  const context = data.settlement_context ?? {};
+  return `- 生成时间：${context.generated_at_local ?? "未知"}
+- 截止时间：${context.order_cutoff_time ?? "15:00"}
+- 当前提示：${context.execution_timing_label ?? "未知"}
+- 是否已过截止时间：${context.is_after_cutoff ? "是" : "否"}
+- 备注：${(context.notes ?? []).join("；") || "无"}`;
+}
+
 function sourcesMarkdown(data) {
   assertCurrentModel(data);
 
@@ -525,6 +598,14 @@ ${officialBlocks}
 ## 长期逻辑复核证据
 
 ${reviewEvidenceBlocks(data) || "- 本次未抓到可写入长期逻辑复核的官方事件。"}
+
+## 组合仓位来源
+
+${portfolioSourceBlock(data)}
+
+## 申购确认延迟
+
+${settlementSourceBlock(data)}
 
 ## 本次数据质量
 
