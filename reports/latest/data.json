@@ -1,15 +1,15 @@
 {
   "report_date": "2026-06-12",
   "timezone": "Asia/Shanghai",
-  "model_version": "long_term_review_v4",
-  "generated_at": "2026-06-12T06:15:11.058Z",
+  "model_version": "long_term_review_v5",
+  "generated_at": "2026-06-12T07:27:25.323Z",
   "data_quality": {
     "status": "complete",
     "label": "实时执行链路完整",
     "confidence_pct": 100,
     "complete_fund_count": 3,
     "fund_count": 3,
-    "oldest_realtime_freshness_minutes": 3.1,
+    "oldest_realtime_freshness_minutes": 0,
     "can_issue_today_execution": true,
     "reason": "三只基金同时具备新鲜盘中估算和底层实时代理，可以生成今天的动作和金额建议。"
   },
@@ -28,10 +28,13 @@
         "note": "半导体核心新增入口。",
         "allocation_pct": 7.2,
         "market_snapshot": {
-          "today_estimate_pct": 0.26,
-          "underlying_proxy_pct": 1.08,
+          "today_estimate_pct": -0.63,
+          "today_estimate_time": "2026-06-12 15:00",
+          "today_estimate_source_url": "https://fundgz.1234567.com.cn/js/012552.js",
+          "underlying_proxy_pct": -0.16,
           "nav": 1.5535,
           "nav_date": "2026-06-11",
+          "official_source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=012552&pageIndex=1&pageSize=40",
           "performance_1d_pct": 0.63,
           "performance_1w_pct": -4.86,
           "performance_1m_pct": null,
@@ -50,10 +53,13 @@
         "note": "设备弹性仓，执行节奏必须慢于核心仓。",
         "allocation_pct": 2.8,
         "market_snapshot": {
-          "today_estimate_pct": -1.61,
-          "underlying_proxy_pct": -1.23,
+          "today_estimate_pct": -2.5,
+          "today_estimate_time": "2026-06-12 15:00",
+          "today_estimate_source_url": "https://fundgz.1234567.com.cn/js/021532.js",
+          "underlying_proxy_pct": -2.44,
           "nav": 3.0854,
           "nav_date": "2026-06-11",
+          "official_source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=021532&pageIndex=1&pageSize=40",
           "performance_1d_pct": 5.02,
           "performance_1w_pct": 8.91,
           "performance_1m_pct": null,
@@ -72,10 +78,13 @@
         "note": "后续黄金新增只加到这只基金。",
         "allocation_pct": 6.9,
         "market_snapshot": {
-          "today_estimate_pct": 1.54,
-          "underlying_proxy_pct": 1.88,
+          "today_estimate_pct": 1.34,
+          "today_estimate_time": "2026-06-12 15:26",
+          "today_estimate_source_url": "https://fundgz.1234567.com.cn/js/000218.js",
+          "underlying_proxy_pct": 1.84,
           "nav": 3.2381,
           "nav_date": "2026-06-11",
+          "official_source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=000218&pageIndex=1&pageSize=40",
           "performance_1d_pct": -2.17,
           "performance_1w_pct": -8.1,
           "performance_1m_pct": null,
@@ -85,7 +94,7 @@
       },
       {
         "code": "002611",
-        "name": "博时黄金ETF联接A",
+        "name": "博时黄金ETF联接C",
         "role": "存量黄金仓",
         "asset_class": "gold",
         "amount": 9600,
@@ -94,14 +103,17 @@
         "note": "只计入黄金总仓位，不再加仓，不输出行动卡。",
         "allocation_pct": 6,
         "market_snapshot": {
-          "today_estimate_pct": null,
+          "today_estimate_pct": 1.28,
+          "today_estimate_time": "2026-06-12 15:27",
+          "today_estimate_source_url": "https://fundgz.1234567.com.cn/js/002611.js",
           "underlying_proxy_pct": null,
           "nav": 2.8176,
           "nav_date": "2026-06-11",
+          "official_source_url": "https://api.fund.eastmoney.com/f10/lsjz?fundCode=002611&pageIndex=1&pageSize=40",
           "performance_1d_pct": -2.14,
           "performance_1w_pct": -8,
           "performance_1m_pct": null,
-          "note": "存量仓不进入实时执行链路，仅展示正式净值表现。"
+          "note": "存量仓不进入行动卡，今日估算仅用于组合概览。"
         },
         "current_status": "存量黄金仓，只保留，不加仓，不输出行动卡。"
       }
@@ -128,7 +140,7 @@
           "002611"
         ],
         "tracked_addable_amount": 11100,
-        "interpretation": "黄金总防守仓已经包含 002611 博时黄金ETF联接A 存量仓，000218 国泰黄金ETF联接A 不应因为单只金额偏低而自动补仓。"
+        "interpretation": "黄金总防守仓已经包含 002611 博时黄金ETF联接C 存量仓，000218 国泰黄金ETF联接A 不应因为单只金额偏低而自动补仓。"
       },
       {
         "key": "cash_like",
@@ -150,20 +162,18 @@
     "summary": "半导体约 9.9%，黄金合计约 12.9%，债基/货币基金约 77.1%。",
     "notes": [
       "组合仓位来自用户手工提供，自动化尚未接入账户实时持仓。",
-      "002611 博时黄金ETF联接A 只作为存量黄金仓计入黄金总仓位，不再输出行动卡，也不再建议加仓。",
+      "002611 博时黄金ETF联接C 只作为存量黄金仓计入黄金总仓位，不再输出行动卡，也不再建议加仓。",
       "后续黄金新增只落到 000218 国泰黄金ETF联接A。"
     ]
   },
-  "settlement_context": {
-    "generated_at_local": "2026-06-12 14:15:11",
+  "execution_context": {
+    "generated_at_local": "2026-06-12 15:27:25",
     "order_cutoff_time": "15:00",
-    "is_after_cutoff": false,
-    "execution_timing_label": "若 15:00 前下单，通常按当日净值确认",
-    "notes": [
-      "基金申购不是实时成交，份额通常在下一交易日或更晚确认。",
-      "当前未过 15:00，若执行计划仍要留出净值确认和份额确认延迟。",
-      "自动化尚未接入交易记录；若已有未确认申购，需要人工同步，避免重复下单。"
-    ]
+    "is_after_cutoff": true,
+    "order_window": "after_cutoff",
+    "trade_confirmation_fact": "基金买入通常按确认日净值成交，不是实时按看到的盘中价格成交。",
+    "pending_order_status": "unknown",
+    "model_instruction": "生成动作和金额时必须知道净值确认时间差、未确认买入状态和下一交易日风险，但不要把这些事实作为固定规则或提醒文案输出。"
   },
   "top_conclusion": {
     "status": "green",
@@ -177,7 +187,6 @@
       "本次没有卖出建议。",
       "金额来自本次行情、长期证据和组合仓位，不使用固定默认比例。"
     ],
-    "settlement_warning": "若 15:00 前下单，通常按当日净值确认",
     "data_status": "实时执行链路完整，可信度 100%"
   },
   "thesis_reviews": {
@@ -216,7 +225,7 @@
           "role": "半导体核心配置",
           "position_review": "当前持有约 11,500 元，占总资产约 7.2%。",
           "official_review": "最新正式净值 1.5535（2026-06-11），近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。",
-          "intraday_review": "盘中估算 +0.26%（2026-06-12 14:12），底层代理 +1.08%（2026-06-12 14:15:08）。",
+          "intraday_review": "盘中估算 -0.63%（2026-06-12 15:00），底层代理 -0.16%（2026-06-12 15:27:19）。",
           "interpretation": "核心仓更适合按长期计划执行，短期波动主要影响单日执行幅度。"
         },
         {
@@ -225,7 +234,7 @@
           "role": "半导体设备弹性仓",
           "position_review": "当前持有约 4,400 元，占总资产约 2.8%。",
           "official_review": "最新正式净值 3.0854（2026-06-11），近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。",
-          "intraday_review": "盘中估算 -1.61%（2026-06-12 14:12），底层代理 -1.23%（2026-06-12 14:15:08）。",
+          "intraday_review": "盘中估算 -2.50%（2026-06-12 15:00），底层代理 -2.44%（2026-06-12 15:27:19）。",
           "interpretation": "设备仓相对核心仓弹性更高，若短期涨幅明显更强，执行上应更慢。"
         }
       ],
@@ -273,12 +282,12 @@
           "role": "黄金防守仓",
           "position_review": "当前持有约 11,100 元，占总资产约 6.9%。",
           "official_review": "最新正式净值 3.2381（2026-06-11），近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%，近 1 月 未知。",
-          "intraday_review": "盘中估算 +1.54%（2026-06-12 14:13），底层代理 +1.88%（2026-06-12 14:15:05）。",
+          "intraday_review": "盘中估算 +1.34%（2026-06-12 15:26），底层代理 +1.84%（2026-06-12 15:27:20）。",
           "interpretation": "黄金承担防守和分散波动，不应把单日下跌自动等同于补仓机会。"
         }
       ],
       "allocation_impact": "不改变黄金作为组合防守仓的定位；是否补足取决于组合防守仓比例，而不是单日涨跌。",
-      "portfolio_impact": "黄金合计约 20,700 元，占总资产约 12.9%；其中 000218 国泰黄金ETF联接A 约 11,100 元，002611 博时黄金ETF联接A 存量约 9,600 元。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。",
+      "portfolio_impact": "黄金合计约 20,700 元，占总资产约 12.9%；其中 000218 国泰黄金ETF联接A 约 11,100 元，002611 博时黄金ETF联接C 存量约 9,600 元。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。",
       "execution_impact": "黄金合计约 12.9%，不是明显不足状态，今天优先维持防守仓比例。",
       "watch_items": [
         "美元和美债实际利率是否继续压制黄金。",
@@ -294,13 +303,13 @@
       "role": "半导体核心配置",
       "intraday_estimate": {
         "type": "intraday_estimate",
-        "value": 1.5575,
-        "change_pct": 0.26,
+        "value": 1.5437,
+        "change_pct": -0.63,
         "previous_nav": 1.5535,
         "previous_nav_date": "2026-06-11",
-        "data_time": "2026-06-12 14:12",
-        "fetch_time": "2026-06-12T06:15:08.967Z",
-        "freshness_minutes": 3.1,
+        "data_time": "2026-06-12 15:00",
+        "fetch_time": "2026-06-12T07:27:22.973Z",
+        "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "天天基金估值接口",
         "source_url": "https://fundgz.1234567.com.cn/js/012552.js"
@@ -319,15 +328,15 @@
       "underlying_realtime": {
         "type": "basket_proxy",
         "label": "前十大持仓等权实时篮子",
-        "data_time": "2026-06-12T06:15:08.000Z",
-        "fetch_time": "2026-06-12T06:15:08.966Z",
-        "freshness_minutes": 0.1,
+        "data_time": "2026-06-12T07:27:19.000Z",
+        "fetch_time": "2026-06-12T07:27:22.973Z",
+        "freshness_minutes": 0,
         "component_count": 10,
         "usable_component_count": 10,
         "failed_component_count": 0,
         "component_errors": [],
         "composition_method": "equal_weight_top_holdings_proxy_single_batch_snapshot",
-        "change_pct": 1.08,
+        "change_pct": -0.16,
         "usable_for_today_execution": true,
         "source_name": "腾讯行情接口",
         "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800",
@@ -336,100 +345,100 @@
             "symbol": "sh688041",
             "code": "688041",
             "label": "������Ϣ",
-            "price": 289.11,
-            "change_amount": -0.73,
-            "change_pct": -0.25,
-            "data_time": "2026-06-12T06:15:05.000Z",
+            "price": 280,
+            "change_amount": -9.84,
+            "change_pct": -3.39,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sz002371",
             "code": "002371",
             "label": "��������",
-            "price": 669,
-            "change_amount": 31.5,
-            "change_pct": 4.94,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 667.19,
+            "change_amount": 29.69,
+            "change_pct": 4.66,
+            "data_time": "2026-06-12T07:26:48.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688981",
             "code": "688981",
             "label": "��о����",
-            "price": 126.14,
-            "change_amount": -1.26,
-            "change_pct": -0.99,
-            "data_time": "2026-06-12T06:15:08.000Z",
+            "price": 124.88,
+            "change_amount": -2.52,
+            "change_pct": -1.98,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688256",
             "code": "688256",
             "label": "�����",
-            "price": 1234.49,
-            "change_amount": 14.99,
-            "change_pct": 1.23,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 1240,
+            "change_amount": 20.5,
+            "change_pct": 1.68,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh603986",
             "code": "603986",
             "label": "���״���",
-            "price": 484.4,
-            "change_amount": 0.9,
-            "change_pct": 0.19,
-            "data_time": "2026-06-12T06:15:07.000Z",
+            "price": 481.47,
+            "change_amount": -2.03,
+            "change_pct": -0.42,
+            "data_time": "2026-06-12T07:27:13.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688008",
             "code": "688008",
             "label": "����Ƽ�",
-            "price": 227.91,
-            "change_amount": -0.79,
-            "change_pct": -0.35,
-            "data_time": "2026-06-12T06:15:08.000Z",
+            "price": 224.88,
+            "change_amount": -3.82,
+            "change_pct": -1.67,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688012",
             "code": "688012",
             "label": "��΢��˾",
-            "price": 308.56,
-            "change_amount": 5.44,
-            "change_pct": 1.79,
-            "data_time": "2026-06-12T06:15:07.000Z",
+            "price": 303.92,
+            "change_amount": 0.8,
+            "change_pct": 0.26,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh603501",
             "code": "603501",
             "label": "��������",
-            "price": 85.89,
-            "change_amount": 0.72,
-            "change_pct": 0.85,
-            "data_time": "2026-06-12T06:15:05.000Z",
+            "price": 86.01,
+            "change_amount": 0.84,
+            "change_pct": 0.99,
+            "data_time": "2026-06-12T07:27:14.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688521",
             "code": "688521",
             "label": "оԭ�ɷ�",
-            "price": 225.51,
-            "change_amount": -4.25,
-            "change_pct": -1.85,
-            "data_time": "2026-06-12T06:15:07.000Z",
+            "price": 223.13,
+            "change_amount": -6.63,
+            "change_pct": -2.89,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688525",
             "code": "688525",
             "label": "��ά�洢",
-            "price": 341.27,
-            "change_amount": 17,
-            "change_pct": 5.24,
-            "data_time": "2026-06-12T06:15:05.000Z",
+            "price": 327.9,
+            "change_amount": 3.63,
+            "change_pct": 1.12,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           }
         ]
@@ -469,7 +478,7 @@
             "role": "半导体核心配置",
             "position_review": "当前持有约 11,500 元，占总资产约 7.2%。",
             "official_review": "最新正式净值 1.5535（2026-06-11），近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。",
-            "intraday_review": "盘中估算 +0.26%（2026-06-12 14:12），底层代理 +1.08%（2026-06-12 14:15:08）。",
+            "intraday_review": "盘中估算 -0.63%（2026-06-12 15:00），底层代理 -0.16%（2026-06-12 15:27:19）。",
             "interpretation": "核心仓更适合按长期计划执行，短期波动主要影响单日执行幅度。"
           },
           {
@@ -478,7 +487,7 @@
             "role": "半导体设备弹性仓",
             "position_review": "当前持有约 4,400 元，占总资产约 2.8%。",
             "official_review": "最新正式净值 3.0854（2026-06-11），近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。",
-            "intraday_review": "盘中估算 -1.61%（2026-06-12 14:12），底层代理 -1.23%（2026-06-12 14:15:08）。",
+            "intraday_review": "盘中估算 -2.50%（2026-06-12 15:00），底层代理 -2.44%（2026-06-12 15:27:19）。",
             "interpretation": "设备仓相对核心仓弹性更高，若短期涨幅明显更强，执行上应更慢。"
           }
         ],
@@ -514,15 +523,19 @@
         "recommended_amount": 800,
         "recommended_label": "本次更建议 800 元",
         "recommended_tier_label": "均衡档",
-        "how_to_execute": "若 15:00 前下单，通常按当日净值确认；如果已经有未确认申购，先把本次金额扣掉或跳过。",
+        "amount_rationale": "核心仓仍有空间，盘中位置没有明显追高，所以采用均衡档。",
         "reason": "半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。",
+        "execution_context_used": {
+          "generated_at_local": "2026-06-12 15:27:25",
+          "order_window": "after_cutoff",
+          "pending_order_status": "unknown"
+        },
         "evidence_support": [
           "仓位证据：012552 天弘芯片产业ETF联接A 当前约 11,500 元，占总资产约 7.2%；半导体合计约 9.9%，核心仓仍可作为半导体新增主入口。",
-          "行情证据：012552 天弘芯片产业ETF联接A 盘中估算 +0.26%，底层代理 +1.08%；正式净值近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。",
+          "行情证据：012552 天弘芯片产业ETF联接A 盘中估算 -0.63%，底层代理 -0.16%；正式净值近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。",
           "长期证据：WSTS 2026-06-02 的信息显示，这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。",
           "判断逻辑：半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。"
-        ],
-        "settlement_note": "若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。"
+        ]
       }
     },
     {
@@ -531,13 +544,13 @@
       "role": "半导体设备弹性仓",
       "intraday_estimate": {
         "type": "intraday_estimate",
-        "value": 3.0357,
-        "change_pct": -1.61,
+        "value": 3.0083,
+        "change_pct": -2.5,
         "previous_nav": 3.0854,
         "previous_nav_date": "2026-06-11",
-        "data_time": "2026-06-12 14:12",
-        "fetch_time": "2026-06-12T06:15:08.968Z",
-        "freshness_minutes": 3.1,
+        "data_time": "2026-06-12 15:00",
+        "fetch_time": "2026-06-12T07:27:22.975Z",
+        "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "天天基金估值接口",
         "source_url": "https://fundgz.1234567.com.cn/js/021532.js"
@@ -556,15 +569,15 @@
       "underlying_realtime": {
         "type": "basket_proxy",
         "label": "前十大设备持仓等权实时篮子",
-        "data_time": "2026-06-12T06:15:08.000Z",
-        "fetch_time": "2026-06-12T06:15:08.966Z",
-        "freshness_minutes": 0.1,
+        "data_time": "2026-06-12T07:27:19.000Z",
+        "fetch_time": "2026-06-12T07:27:22.973Z",
+        "freshness_minutes": 0,
         "component_count": 10,
         "usable_component_count": 10,
         "failed_component_count": 0,
         "component_errors": [],
         "composition_method": "equal_weight_top_holdings_proxy_single_batch_snapshot",
-        "change_pct": -1.23,
+        "change_pct": -2.44,
         "usable_for_today_execution": true,
         "source_name": "腾讯行情接口",
         "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800",
@@ -573,100 +586,100 @@
             "symbol": "sh688012",
             "code": "688012",
             "label": "��΢��˾",
-            "price": 308.56,
-            "change_amount": 5.44,
-            "change_pct": 1.79,
-            "data_time": "2026-06-12T06:15:07.000Z",
+            "price": 303.92,
+            "change_amount": 0.8,
+            "change_pct": 0.26,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sz002371",
             "code": "002371",
             "label": "��������",
-            "price": 669,
-            "change_amount": 31.5,
-            "change_pct": 4.94,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 667.19,
+            "change_amount": 29.69,
+            "change_pct": 4.66,
+            "data_time": "2026-06-12T07:26:48.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688072",
             "code": "688072",
             "label": "�ؾ��Ƽ�",
-            "price": 656.14,
-            "change_amount": 0.87,
-            "change_pct": 0.13,
-            "data_time": "2026-06-12T06:15:07.000Z",
+            "price": 645.18,
+            "change_amount": -10.09,
+            "change_pct": -1.54,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sz300604",
             "code": "300604",
             "label": "�����Ƽ�",
-            "price": 232.34,
-            "change_amount": -0.5,
-            "change_pct": -0.21,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 223.12,
+            "change_amount": -9.72,
+            "change_pct": -4.17,
+            "data_time": "2026-06-12T07:26:45.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688120",
             "code": "688120",
             "label": "�������",
-            "price": 186.99,
-            "change_amount": 0.25,
-            "change_pct": 0.13,
-            "data_time": "2026-06-12T06:15:08.000Z",
+            "price": 184,
+            "change_amount": -2.74,
+            "change_pct": -1.47,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688126",
             "code": "688126",
             "label": "�����ҵ",
-            "price": 29.29,
-            "change_amount": -3.21,
-            "change_pct": -9.88,
-            "data_time": "2026-06-12T06:15:07.000Z",
+            "price": 29.59,
+            "change_amount": -2.91,
+            "change_pct": -8.95,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688361",
             "code": "688361",
             "label": "�пƷɲ�",
-            "price": 223.89,
-            "change_amount": 11.13,
-            "change_pct": 5.23,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 226.45,
+            "change_amount": 13.69,
+            "change_pct": 6.43,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sz300346",
             "code": "300346",
             "label": "�ϴ���",
-            "price": 60.2,
-            "change_amount": -6.51,
-            "change_pct": -9.76,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 59.39,
+            "change_amount": -7.32,
+            "change_pct": -10.97,
+            "data_time": "2026-06-12T07:26:45.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sh688019",
             "code": "688019",
             "label": "�����Ƽ�",
-            "price": 227.59,
-            "change_amount": -2.86,
-            "change_pct": -1.24,
-            "data_time": "2026-06-12T06:15:06.000Z",
+            "price": 225,
+            "change_amount": -5.45,
+            "change_pct": -2.36,
+            "data_time": "2026-06-12T07:27:19.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           },
           {
             "symbol": "sz300666",
             "code": "300666",
             "label": "�������",
-            "price": 282.28,
-            "change_amount": -10.12,
-            "change_pct": -3.46,
-            "data_time": "2026-06-12T06:15:03.000Z",
+            "price": 274.08,
+            "change_amount": -18.32,
+            "change_pct": -6.27,
+            "data_time": "2026-06-12T07:27:00.000Z",
             "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
           }
         ]
@@ -706,7 +719,7 @@
             "role": "半导体核心配置",
             "position_review": "当前持有约 11,500 元，占总资产约 7.2%。",
             "official_review": "最新正式净值 1.5535（2026-06-11），近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。",
-            "intraday_review": "盘中估算 +0.26%（2026-06-12 14:12），底层代理 +1.08%（2026-06-12 14:15:08）。",
+            "intraday_review": "盘中估算 -0.63%（2026-06-12 15:00），底层代理 -0.16%（2026-06-12 15:27:19）。",
             "interpretation": "核心仓更适合按长期计划执行，短期波动主要影响单日执行幅度。"
           },
           {
@@ -715,7 +728,7 @@
             "role": "半导体设备弹性仓",
             "position_review": "当前持有约 4,400 元，占总资产约 2.8%。",
             "official_review": "最新正式净值 3.0854（2026-06-11），近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。",
-            "intraday_review": "盘中估算 -1.61%（2026-06-12 14:12），底层代理 -1.23%（2026-06-12 14:15:08）。",
+            "intraday_review": "盘中估算 -2.50%（2026-06-12 15:00），底层代理 -2.44%（2026-06-12 15:27:19）。",
             "interpretation": "设备仓相对核心仓弹性更高，若短期涨幅明显更强，执行上应更慢。"
           }
         ],
@@ -735,31 +748,35 @@
           {
             "label": "谨慎档",
             "amount": 200,
-            "description": "设备仓只保留弹性，不快速放大。"
+            "description": "设备仓波动更大，只能小额买入。"
           },
           {
             "label": "均衡档",
             "amount": 400,
-            "description": "金额低于核心仓，符合弹性仓定位。"
+            "description": "回落改善位置，但金额仍低于核心仓。"
           },
           {
             "label": "积极档",
             "amount": 600,
-            "description": "只适合希望略提高设备弹性的人。"
+            "description": "只适合能接受设备链更大波动的人。"
           }
         ],
         "recommended_amount": 400,
         "recommended_label": "本次更建议 400 元",
         "recommended_tier_label": "均衡档",
-        "how_to_execute": "若 15:00 前下单，通常按当日净值确认；如果已经有未确认申购，先把本次金额扣掉或跳过。",
+        "amount_rationale": "设备仓需要低于核心仓，今天采用均衡档的小额金额。",
         "reason": "设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。",
+        "execution_context_used": {
+          "generated_at_local": "2026-06-12 15:27:25",
+          "order_window": "after_cutoff",
+          "pending_order_status": "unknown"
+        },
         "evidence_support": [
           "仓位证据：021532 天弘半导体设备指数A 当前约 4,400 元，占总资产约 2.8%；它是设备弹性仓，金额应明显低于核心仓。",
-          "行情证据：021532 天弘半导体设备指数A 盘中估算 -1.61%，底层代理 -1.23%；正式净值近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。",
+          "行情证据：021532 天弘半导体设备指数A 盘中估算 -2.50%，底层代理 -2.44%；正式净值近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。",
           "长期证据：WSTS 2026-06-02 的信息显示，这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。",
           "判断逻辑：设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。"
-        ],
-        "settlement_note": "若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。"
+        ]
       }
     },
     {
@@ -768,13 +785,13 @@
       "role": "黄金防守仓",
       "intraday_estimate": {
         "type": "intraday_estimate",
-        "value": 3.2879,
-        "change_pct": 1.54,
+        "value": 3.2814,
+        "change_pct": 1.34,
         "previous_nav": 3.2381,
         "previous_nav_date": "2026-06-11",
-        "data_time": "2026-06-12 14:13",
-        "fetch_time": "2026-06-12T06:15:08.969Z",
-        "freshness_minutes": 2.1,
+        "data_time": "2026-06-12 15:26",
+        "fetch_time": "2026-06-12T07:27:22.977Z",
+        "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "天天基金估值接口",
         "source_url": "https://fundgz.1234567.com.cn/js/000218.js"
@@ -793,14 +810,14 @@
       "underlying_realtime": {
         "symbol": "sh518800",
         "label": "黄金ETF国泰",
-        "price": 9.084,
-        "change_amount": 0.168,
-        "change_pct": 1.88,
-        "data_time": "2026-06-12T06:15:05.000Z",
+        "price": 9.08,
+        "change_amount": 0.164,
+        "change_pct": 1.84,
+        "data_time": "2026-06-12T07:27:20.000Z",
         "code": "518800",
         "type": "tencent_quote_proxy",
-        "fetch_time": "2026-06-12T06:15:08.966Z",
-        "freshness_minutes": 0.1,
+        "fetch_time": "2026-06-12T07:27:22.973Z",
+        "freshness_minutes": 0,
         "usable_for_today_execution": true,
         "source_name": "腾讯行情接口",
         "source_url": "https://qt.gtimg.cn/q=sh688041,sz002371,sh688981,sh688256,sh603986,sh688008,sh688012,sh603501,sh688521,sh688525,sh688072,sz300604,sh688120,sh688126,sh688361,sz300346,sh688019,sz300666,sh518800"
@@ -840,12 +857,12 @@
             "role": "黄金防守仓",
             "position_review": "当前持有约 11,100 元，占总资产约 6.9%。",
             "official_review": "最新正式净值 3.2381（2026-06-11），近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%，近 1 月 未知。",
-            "intraday_review": "盘中估算 +1.54%（2026-06-12 14:13），底层代理 +1.88%（2026-06-12 14:15:05）。",
+            "intraday_review": "盘中估算 +1.34%（2026-06-12 15:26），底层代理 +1.84%（2026-06-12 15:27:20）。",
             "interpretation": "黄金承担防守和分散波动，不应把单日下跌自动等同于补仓机会。"
           }
         ],
         "allocation_impact": "不改变黄金作为组合防守仓的定位；是否补足取决于组合防守仓比例，而不是单日涨跌。",
-        "portfolio_impact": "黄金合计约 20,700 元，占总资产约 12.9%；其中 000218 国泰黄金ETF联接A 约 11,100 元，002611 博时黄金ETF联接A 存量约 9,600 元。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。",
+        "portfolio_impact": "黄金合计约 20,700 元，占总资产约 12.9%；其中 000218 国泰黄金ETF联接A 约 11,100 元，002611 博时黄金ETF联接C 存量约 9,600 元。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。",
         "execution_impact": "黄金合计约 12.9%，不是明显不足状态，今天优先维持防守仓比例。",
         "watch_items": [
           "美元和美债实际利率是否继续压制黄金。",
@@ -876,15 +893,19 @@
         "recommended_amount": 0,
         "recommended_label": "本次更建议 0 元",
         "recommended_tier_label": "均衡档",
-        "how_to_execute": "今天不买入，继续持有现有黄金防守仓。",
+        "amount_rationale": "黄金总仓位已经足够，金额设为 0。",
         "reason": "黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。",
+        "execution_context_used": {
+          "generated_at_local": "2026-06-12 15:27:25",
+          "order_window": "after_cutoff",
+          "pending_order_status": "unknown"
+        },
         "evidence_support": [
-          "仓位证据：000218 国泰黄金ETF联接A 当前约 11,100 元，占总资产约 6.9%；黄金合计含 002611 博时黄金ETF联接A 后约 12.9%，是否补仓按黄金总防守仓判断。",
-          "行情证据：000218 国泰黄金ETF联接A 盘中估算 +1.54%，底层代理 +1.88%；正式净值近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%，近 1 月 未知。",
+          "仓位证据：000218 国泰黄金ETF联接A 当前约 11,100 元，占总资产约 6.9%；黄金合计含 002611 博时黄金ETF联接C 后约 12.9%，是否补仓按黄金总防守仓判断。",
+          "行情证据：000218 国泰黄金ETF联接A 盘中估算 +1.34%，底层代理 +1.84%；正式净值近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%，近 1 月 未知。",
           "长期证据：SAFE 2026-06-07 的信息显示，央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。",
           "判断逻辑：黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。"
-        ],
-        "settlement_note": "若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。"
+        ]
       }
     }
   ],

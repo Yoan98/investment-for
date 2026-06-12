@@ -108,7 +108,7 @@ const PORTFOLIO_INPUT = {
     },
     {
       code: "002611",
-      name: "博时黄金ETF联接A",
+      name: "博时黄金ETF联接C",
       role: "存量黄金仓",
       asset_class: "gold",
       amount: 9600,
@@ -1343,6 +1343,10 @@ function officialNavUrlForCode(code) {
   return `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=40`;
 }
 
+function estimateUrlForCode(code) {
+  return `https://fundgz.1234567.com.cn/js/${code}.js`;
+}
+
 function fundFullName(item) {
   if (!item) return "未知基金";
   return `${item.code} ${item.name}`;
@@ -1376,15 +1380,18 @@ function statusForPortfolioPosition(position, groups) {
 function positionMarketSnapshot(position, marketFund) {
   return {
     today_estimate_pct: marketFund?.intraday_estimate?.change_pct ?? null,
+    today_estimate_time: marketFund?.intraday_estimate?.data_time ?? null,
+    today_estimate_source_url: marketFund?.intraday_estimate?.source_url ?? null,
     underlying_proxy_pct: marketFund?.underlying_realtime?.change_pct ?? null,
     nav: marketFund?.official_nav?.nav ?? null,
     nav_date: marketFund?.official_nav?.nav_date ?? null,
+    official_source_url: marketFund?.official_nav?.source_url ?? null,
     performance_1d_pct: marketFund?.official_nav?.performance_1d_pct ?? null,
     performance_1w_pct: marketFund?.official_nav?.performance_1w_pct ?? null,
     performance_1m_pct: marketFund?.official_nav?.performance_1m_pct ?? null,
     note: position.tracked_for_execution
       ? "今日估算来自行动卡实时链路；正式净值只用于复核。"
-      : "存量仓不进入实时执行链路，仅展示正式净值表现。",
+      : "存量仓不进入行动卡，今日估算仅用于组合概览。",
   };
 }
 
@@ -1433,7 +1440,7 @@ function buildPortfolioContext(marketFunds = []) {
         .map((position) => position.code),
       tracked_addable_amount: trackedGoldAmount,
       interpretation:
-        "黄金总防守仓已经包含 002611 博时黄金ETF联接A 存量仓，000218 国泰黄金ETF联接A 不应因为单只金额偏低而自动补仓。",
+        "黄金总防守仓已经包含 002611 博时黄金ETF联接C 存量仓，000218 国泰黄金ETF联接A 不应因为单只金额偏低而自动补仓。",
     },
     {
       key: "cash_like",
@@ -1460,13 +1467,13 @@ function buildPortfolioContext(marketFunds = []) {
     )}，债基/货币基金约 ${formatAllocationPct(groups[2].allocation_pct)}。`,
     notes: [
       "组合仓位来自用户手工提供，自动化尚未接入账户实时持仓。",
-      "002611 博时黄金ETF联接A 只作为存量黄金仓计入黄金总仓位，不再输出行动卡，也不再建议加仓。",
+      "002611 博时黄金ETF联接C 只作为存量黄金仓计入黄金总仓位，不再输出行动卡，也不再建议加仓。",
       "后续黄金新增只落到 000218 国泰黄金ETF联接A。",
     ],
   };
 }
 
-function buildSettlementContext(generatedAtIso) {
+function buildExecutionContext(generatedAtIso) {
   const generatedDisplay = formatChinaDisplay(generatedAtIso);
   const generatedDate = new Date(generatedAtIso);
   const parts = chinaDateParts(generatedDate);
@@ -1478,16 +1485,12 @@ function buildSettlementContext(generatedAtIso) {
     generated_at_local: generatedDisplay,
     order_cutoff_time: "15:00",
     is_after_cutoff: isAfterCutoff,
-    execution_timing_label: isAfterCutoff
-      ? "若现在下单，通常按下一交易日净值确认"
-      : "若 15:00 前下单，通常按当日净值确认",
-    notes: [
-      "基金申购不是实时成交，份额通常在下一交易日或更晚确认。",
-      isAfterCutoff
-        ? "当前已过 15:00，今天的报告仍可用于决定是否下单，但实际承接的是下一交易日净值风险。"
-        : "当前未过 15:00，若执行计划仍要留出净值确认和份额确认延迟。",
-      "自动化尚未接入交易记录；若已有未确认申购，需要人工同步，避免重复下单。",
-    ],
+    order_window: isAfterCutoff ? "after_cutoff" : "before_cutoff",
+    trade_confirmation_fact:
+      "基金买入通常按确认日净值成交，不是实时按看到的盘中价格成交。",
+    pending_order_status: "unknown",
+    model_instruction:
+      "生成动作和金额时必须知道净值确认时间差、未确认买入状态和下一交易日风险，但不要把这些事实作为固定规则或提醒文案输出。",
   };
 }
 
@@ -1607,7 +1610,7 @@ function buildGoldReview(sourcePool, funds, portfolioContext) {
       goldGroup?.allocation_pct
     )}；其中 000218 国泰黄金ETF联接A 约 ${formatAmount(
       currentGoldAmount
-    )}，002611 博时黄金ETF联接A 存量约 ${formatAmount(
+    )}，002611 博时黄金ETF联接C 存量约 ${formatAmount(
       legacyGoldAmount
     )}。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。`,
     execution_impact: goldPressure
@@ -1680,13 +1683,9 @@ function portfolioEvidenceForFund(fund, portfolioContext) {
 
   return `仓位证据：${fundFullName(fund)} 当前约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
     fundAllocation
-  )}；黄金合计含 002611 博时黄金ETF联接A 后约 ${formatAllocationPct(
+  )}；黄金合计含 002611 博时黄金ETF联接C 后约 ${formatAllocationPct(
     goldGroup?.allocation_pct
   )}，是否补仓按黄金总防守仓判断。`;
-}
-
-function settlementNoteForFund(settlementContext) {
-  return `${settlementContext.execution_timing_label}；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。`;
 }
 
 function roundedAmount(value) {
@@ -1725,7 +1724,7 @@ function amountTiersForBuy(fund, marketTone) {
       return [
         amountTier("谨慎档", 800, "长期逻辑未变，回落时可小步提高核心仓金额。"),
         amountTier("均衡档", 1200, "仓位仍有空间，回落改善了执行位置。"),
-        amountTier("积极档", 1600, "只适合确认没有未完成申购且能承受波动的人。"),
+        amountTier("积极档", 1600, "只适合确认没有未确认买入且能承受波动的人。"),
       ];
     }
 
@@ -1823,19 +1822,18 @@ function buildActionPlan(
   dataQuality,
   thesisReviews,
   portfolioContext,
-  settlementContext
+  executionContext
 ) {
   const thesis = thesisForFund(fund, thesisReviews);
   const tone = marketToneForFund(fund);
   const goldAllocationPct = groupForKey(portfolioContext, "gold_total")?.allocation_pct;
-  const settlementNote = settlementNoteForFund(settlementContext);
 
   const finish = ({
     action,
     amountTiers,
     recommendedAmount,
     recommendedTierLabel = "均衡档",
-    howToExecute,
+    amountRationale,
     reason,
   }) => ({
     action,
@@ -1847,10 +1845,14 @@ function buildActionPlan(
         ? "本次更建议 0 元"
         : `本次更建议 ${formatAmount(roundedAmount(recommendedAmount))}`,
     recommended_tier_label: recommendedTierLabel,
-    how_to_execute: howToExecute,
+    amount_rationale: amountRationale,
     reason,
+    execution_context_used: {
+      generated_at_local: executionContext.generated_at_local,
+      order_window: executionContext.order_window,
+      pending_order_status: executionContext.pending_order_status,
+    },
     evidence_support: actionEvidenceSupport(fund, thesis, portfolioContext, reason),
-    settlement_note: settlementNote,
   });
 
   if (!dataQuality.can_issue_today_execution || !hasCompleteRealtime(fund)) {
@@ -1859,7 +1861,7 @@ function buildActionPlan(
       action: "no_action",
       amountTiers: zeroAmountTiers(reason),
       recommendedAmount: 0,
-      howToExecute: "今天不下单，等实时链路恢复后再判断。",
+      amountRationale: "实时链路不完整，金额设为 0。",
       reason,
     });
   }
@@ -1870,7 +1872,7 @@ function buildActionPlan(
       action: "no_action",
       amountTiers: zeroAmountTiers(reason),
       recommendedAmount: 0,
-      howToExecute: "今天不新增，先保留现金和债基仓位。",
+      amountRationale: "长期逻辑转弱时不新增，金额设为 0。",
       reason,
     });
   }
@@ -1881,7 +1883,7 @@ function buildActionPlan(
       action: "watch",
       amountTiers: zeroAmountTiers(reason),
       recommendedAmount: 0,
-      howToExecute: "今天不新增，等待长期证据补充。",
+      amountRationale: "长期证据不足，金额设为 0。",
       reason,
     });
   }
@@ -1893,7 +1895,7 @@ function buildActionPlan(
         action: "hold",
         amountTiers: zeroAmountTiers(reason),
         recommendedAmount: 0,
-        howToExecute: "今天不买入，继续持有现有黄金防守仓。",
+        amountRationale: "黄金总仓位已经足够，金额设为 0。",
         reason,
       });
     }
@@ -1904,7 +1906,7 @@ function buildActionPlan(
         action: "hold",
         amountTiers: zeroAmountTiers(reason),
         recommendedAmount: 0,
-        howToExecute: "今天不买入，避免把防守仓做成进攻仓。",
+        amountRationale: "黄金当日偏强，不追涨，金额设为 0。",
         reason,
       });
     }
@@ -1915,7 +1917,7 @@ function buildActionPlan(
         action: "watch",
         amountTiers: zeroAmountTiers(reason),
         recommendedAmount: 0,
-        howToExecute: "今天先观望，等待宏观利率和正式净值复核。",
+        amountRationale: "短线压力需要复核，金额设为 0。",
         reason,
       });
     }
@@ -1927,7 +1929,7 @@ function buildActionPlan(
       action: "buy",
       amountTiers: tiers,
       recommendedAmount: recommended,
-      howToExecute: "只做防守仓比例补足，不把黄金当进攻仓。",
+      amountRationale: "黄金总仓位偏低时只做防守仓小额补足，采用均衡档。",
       reason,
     });
   }
@@ -1938,7 +1940,7 @@ function buildActionPlan(
       action: "watch",
       amountTiers: zeroAmountTiers(reason),
       recommendedAmount: 0,
-      howToExecute: "今天不买设备仓，保留现金等待更好的执行位置。",
+      amountRationale: "设备仓当日偏热，金额设为 0。",
       reason,
     });
   }
@@ -1954,7 +1956,10 @@ function buildActionPlan(
     action: "buy",
     amountTiers: tiers,
     recommendedAmount: recommended,
-    howToExecute: `${settlementContext.execution_timing_label}；如果已经有未确认申购，先把本次金额扣掉或跳过。`,
+    amountRationale:
+      fund.code === "012552"
+        ? "核心仓仍有空间，盘中位置没有明显追高，所以采用均衡档。"
+        : "设备仓需要低于核心仓，今天采用均衡档的小额金额。",
     reason,
   });
 }
@@ -1964,7 +1969,7 @@ function addActionFields(
   dataQuality,
   thesisReviews,
   portfolioContext,
-  settlementContext
+  executionContext
 ) {
   return funds.map((fund) => {
     const thesisStatus = thesisForFund(fund, thesisReviews);
@@ -1976,7 +1981,7 @@ function addActionFields(
         dataQuality,
         thesisReviews,
         portfolioContext,
-        settlementContext
+        executionContext
       ),
     };
   });
@@ -1993,7 +1998,7 @@ function weakestThesisStatus(thesisReviews) {
   );
 }
 
-function buildTopConclusion(dataQuality, thesisReviews, funds, settlementContext) {
+function buildTopConclusion(dataQuality, thesisReviews, funds) {
   const status = weakestThesisStatus(thesisReviews);
   const actionSummary = dataQuality.can_issue_today_execution
     ? funds
@@ -2004,7 +2009,7 @@ function buildTopConclusion(dataQuality, thesisReviews, funds, settlementContext
           )}`;
         })
         .join("；")
-    : "今日不操作，只保留长期逻辑复核和正式净值复核";
+    : "今日不操作，只保留长期逻辑复核和基金表现数据";
   const totalBuyAmount = funds.reduce((sum, fund) => {
     const amount = toNumber(fund.action_plan?.recommended_amount) ?? 0;
     return amount > 0 ? sum + amount : sum;
@@ -2045,7 +2050,6 @@ function buildTopConclusion(dataQuality, thesisReviews, funds, settlementContext
         : "本次没有卖出建议。",
       "金额来自本次行情、长期证据和组合仓位，不使用固定默认比例。",
     ],
-    settlement_warning: settlementContext.execution_timing_label,
     data_status: `${dataQuality.label}，可信度 ${dataQuality.confidence_pct}%`,
   };
 }
@@ -2068,16 +2072,22 @@ async function collectFund(fund, quoteSnapshot) {
 }
 
 async function collectPortfolioOnlyFund(position) {
-  const officialNav = await collectOfficialNav({
-    code: position.code,
-    officialNavUrl: officialNavUrlForCode(position.code),
-  });
+  const [estimate, officialNav] = await Promise.all([
+    collectEstimate({
+      code: position.code,
+      estimateUrl: estimateUrlForCode(position.code),
+    }),
+    collectOfficialNav({
+      code: position.code,
+      officialNavUrl: officialNavUrlForCode(position.code),
+    }),
+  ]);
 
   return {
     code: position.code,
     name: position.name,
     role: position.role,
-    intraday_estimate: null,
+    intraday_estimate: estimate,
     official_nav: officialNav,
     underlying_realtime: null,
   };
@@ -2098,7 +2108,7 @@ async function main() {
   ]);
   const generatedAt = nowIso();
   const portfolioContext = buildPortfolioContext([...funds, ...portfolioOnlyFunds]);
-  const settlementContext = buildSettlementContext(generatedAt);
+  const executionContext = buildExecutionContext(generatedAt);
   const dataQuality = buildDataQuality(funds);
   const thesisReviews = buildThesisReviews(infoItems, funds, portfolioContext);
   const analyzedFunds = addActionFields(
@@ -2106,22 +2116,21 @@ async function main() {
     dataQuality,
     thesisReviews,
     portfolioContext,
-    settlementContext
+    executionContext
   );
   const topConclusion = buildTopConclusion(
     dataQuality,
     thesisReviews,
-    analyzedFunds,
-    settlementContext
+    analyzedFunds
   );
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
-    model_version: "long_term_review_v4",
+    model_version: "long_term_review_v5",
     generated_at: generatedAt,
     data_quality: dataQuality,
     portfolio_context: portfolioContext,
-    settlement_context: settlementContext,
+    execution_context: executionContext,
     top_conclusion: topConclusion,
     thesis_reviews: thesisReviews,
     funds: analyzedFunds,

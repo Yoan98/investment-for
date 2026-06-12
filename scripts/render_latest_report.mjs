@@ -6,7 +6,7 @@ import path from "node:path";
 const DEFAULT_INPUT = path.join("reports", "latest", "data.json");
 const DEFAULT_REPORT = path.join("reports", "latest", "report.html");
 const DEFAULT_SOURCES = path.join("reports", "latest", "sources.md");
-const EXPECTED_MODEL_VERSION = "long_term_review_v4";
+const EXPECTED_MODEL_VERSION = "long_term_review_v5";
 
 function getArg(name, fallback = null) {
   const index = process.argv.indexOf(name);
@@ -232,55 +232,13 @@ function renderActionCards(funds) {
             <p>${escapeHtml(plan.reason ?? "暂无原因。")}</p>
           </div>
           ${renderAmountTiers(plan.amount_tiers)}
-          <p><b>怎么做：</b>${escapeHtml(plan.how_to_execute ?? "暂无执行说明。")}</p>
-          <p><b>申购提醒：</b>${escapeHtml(plan.settlement_note ?? "暂无申购延迟说明。")}</p>
+          <p><b>金额怎么来的：</b>${escapeHtml(plan.amount_rationale ?? "暂无金额说明。")}</p>
           <h4>证据支撑</h4>
           ${listHtml(plan.evidence_support)}
         </article>
       `;
     })
     .join("");
-}
-
-function renderNavReviewTable(funds) {
-  const rows = funds
-    .map((fund) => `
-      <tr>
-        <td>${escapeHtml(fundFullName(fund))}</td>
-        <td>${escapeHtml(fund.role)}</td>
-        <td>${escapeHtml(fund.official_nav?.nav ?? "未知")} / ${escapeHtml(fund.official_nav?.nav_date ?? "未知")}</td>
-        <td>${escapeHtml(formatPercent(fund.intraday_estimate?.change_pct))}</td>
-        <td>${escapeHtml(changeWord(fund.official_nav?.performance_1d_pct))}</td>
-        <td>${escapeHtml(changeWord(fund.official_nav?.performance_1w_pct))}</td>
-        <td>${escapeHtml(changeWord(fund.official_nav?.performance_1m_pct))}</td>
-        <td>${escapeHtml(fund.action_plan?.reason ?? "正式净值仅用于复核，不覆盖今日动作。")}</td>
-      </tr>
-    `)
-    .join("");
-
-  return `
-    <section>
-      <h2>正式净值复核</h2>
-      <p class="section-note">这一层只复核前一交易日和近几日结果，不覆盖今天的动作和金额。</p>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>基金</th>
-              <th>角色</th>
-              <th>最新正式净值</th>
-              <th>今日估算</th>
-              <th>近 1 日</th>
-              <th>近 1 周</th>
-              <th>近 1 月</th>
-              <th>复核结论</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </section>
-  `;
 }
 
 function renderPortfolioContext(portfolioContext) {
@@ -554,7 +512,6 @@ function reportHtml(data) {
     </div>
     <p><b>具体动作：</b>${escapeHtml(top.action_summary ?? "未知")}</p>
     ${listHtml(top.focus)}
-    <p class="section-note"><b>申购提醒：</b>${escapeHtml(top.settlement_warning ?? data.settlement_context?.execution_timing_label ?? "未知")}</p>
   </section>
 
   <section>
@@ -571,13 +528,11 @@ function reportHtml(data) {
     </div>
   </section>
 
-  ${renderNavReviewTable(data.funds ?? [])}
-
   <section class="footer-note">
     <h2>来源与不确定性</h2>
-    <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；正式净值复核来自东方财富历史净值接口；长期逻辑复核证据来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
+    <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；基金表现数据来自东方财富历史净值接口；长期逻辑复核证据来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
     <p><b>金额建议说明：</b>本次金额由当次行情位置、长期证据、基金角色和组合仓位共同推导，不使用固定默认比例。</p>
-    <p><b>申购延迟：</b>${escapeHtml((data.settlement_context?.notes ?? []).join(" "))}</p>
+    <p><b>生成上下文：</b>报告生成器已接收交易确认时间差、未确认买入状态和下一交易日风险作为背景输入；这些事实不作为固定规则展示。</p>
     <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤动作金额，不能替代正式净值或长期基本面判断。</p>
     <p><b>数据缺口：</b>${escapeHtml(sourceErrors.length > 0 ? sourceErrors.join("；") : "本次未发现关键数据抓取缺口。")}</p>
   </section>
@@ -633,13 +588,14 @@ ${positionBlocks || "- 未提供持仓明细"}
 - 可信度备注：用于约束动作和金额；自动化尚未接入账户实时持仓，金额需要人工更新。`;
 }
 
-function settlementSourceBlock(data) {
-  const context = data.settlement_context ?? {};
+function executionContextBlock(data) {
+  const context = data.execution_context ?? {};
   return `- 生成时间：${context.generated_at_local ?? "未知"}
-- 截止时间：${context.order_cutoff_time ?? "15:00"}
-- 当前提示：${context.execution_timing_label ?? "未知"}
-- 是否已过截止时间：${context.is_after_cutoff ? "是" : "否"}
-- 备注：${(context.notes ?? []).join("；") || "无"}`;
+- 通常确认截止时间：${context.order_cutoff_time ?? "15:00"}
+- 当前时间窗口：${context.order_window ?? "未知"}
+- 交易确认事实：${context.trade_confirmation_fact ?? "未知"}
+- 未确认买入状态：${context.pending_order_status ?? "unknown"}
+- 给生成器的说明：${context.model_instruction ?? "无"}`;
 }
 
 function amountGuidanceBlock(data) {
@@ -651,7 +607,7 @@ function amountGuidanceBlock(data) {
     return `- ${fundFullName(fund)}：${plan.action_label ?? "未知"}，本次更建议 ${formatAmount(plan.recommended_amount ?? 0)}；档位：${tiers || "无"}`;
   });
 
-  return `- 规则说明：不使用固定默认比例；金额由当次行情、长期证据、基金角色、组合仓位和申购缺口共同推导。
+  return `- 规则说明：不使用固定默认比例；金额由当次行情、长期证据、基金角色、组合仓位和生成上下文共同推导。
 ${lines.join("\n")}`;
 }
 
@@ -665,13 +621,16 @@ function sourcesMarkdown(data) {
     ])
     .join("\n\n");
 
-  const officialBlocks = data.funds
-    .map((fund) => `- 来源名称：${fund.official_nav?.source_name ?? "未知"}
-- 链接：${fund.official_nav?.source_url ?? "未知"}
-- 用途：${fundFullName(fund)} 的正式净值复核。
-- 数据时间：${fund.official_nav?.nav_date ?? "未知"}
-- 抓取错误：${fund.official_nav?.error ?? "无"}
-- 可信度备注：正式净值可信度高，只用于复核前一交易日和近几日表现。`)
+  const performanceBlocks = (data.portfolio_context?.positions ?? [])
+    .map((position) => {
+      const snapshot = position.market_snapshot ?? {};
+      return `- 基金：${position.code} ${position.name}
+- 今日估算来源：${snapshot.today_estimate_source_url ?? "无"}
+- 今日估算时间：${snapshot.today_estimate_time ?? "无"}
+- 正式净值来源：${snapshot.official_source_url ?? "未知"}
+- 最新正式净值日期：${snapshot.nav_date ?? "未知"}
+- 用途：展示今日估算、近 1 日、近 1 周、近 1 月表现，并支撑动作金额判断。`;
+    })
     .join("\n\n");
 
   return `# Sources - ${data.report_date}
@@ -683,9 +642,9 @@ function sourcesMarkdown(data) {
 
 ${liveBlocks}
 
-## 正式净值复核
+## 基金表现数据来源
 
-${officialBlocks}
+${performanceBlocks}
 
 ## 长期逻辑复核证据
 
@@ -695,9 +654,9 @@ ${reviewEvidenceBlocks(data) || "- 本次未抓到可写入长期逻辑复核的
 
 ${portfolioSourceBlock(data)}
 
-## 申购延迟说明
+## 生成上下文来源
 
-${settlementSourceBlock(data)}
+${executionContextBlock(data)}
 
 ## 金额建议说明
 
