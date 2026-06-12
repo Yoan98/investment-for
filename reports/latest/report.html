@@ -42,7 +42,7 @@
     a { color: var(--blue); }
     ul { margin: 0; padding-left: 20px; }
     li + li { margin-top: 5px; }
-    .meta-row, .review-grid, .portfolio-grid, .action-list { display: grid; gap: 14px; }
+    .meta-row, .review-grid, .portfolio-grid, .action-list, .tier-grid { display: grid; gap: 14px; }
     .meta-row { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
     .meta-pill {
       border-left: 4px solid var(--blue);
@@ -76,8 +76,33 @@
     .badge.good { background: var(--good); }
     .badge.watch { background: var(--watch); }
     .badge.stop { background: var(--stop); }
+    .hero-amounts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .hero-amount {
+      background: #f7faf9;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .hero-amount strong, .big-amount, .tier-amount {
+      display: block;
+      font-size: 26px;
+      line-height: 1.2;
+      margin-top: 4px;
+    }
+    .eyebrow, .tier-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
     .review-grid { grid-template-columns: 1fr; }
-    .review-card, .portfolio-panel, .action-card {
+    .review-card, .portfolio-panel, .action-card, .tier {
       border: 1px solid var(--line);
       background: var(--paper);
       border-radius: 12px;
@@ -91,12 +116,24 @@
       gap: 12px;
       margin-bottom: 8px;
     }
+    .action-keyline {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #f7faf9;
+      margin: 12px 0 14px;
+    }
+    .tier-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; }
     .evidence-row, .fund-row {
       border-top: 1px solid var(--line);
       padding-top: 12px;
       margin-top: 12px;
     }
-    .impact-grid, .action-grid {
+    .impact-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px 16px;
@@ -119,7 +156,7 @@
     .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
     table { width: 100%; border-collapse: collapse; min-width: 980px; font-size: 14px; }
     .compact-table { margin-top: 14px; }
-    .compact-table table { min-width: 860px; }
+    .compact-table table { min-width: 1060px; }
     th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
     th { background: #e9efed; }
     tr:last-child td { border-bottom: 0; }
@@ -127,7 +164,7 @@
     @media (max-width: 780px) {
       main { width: min(100% - 18px, 1120px); margin-top: 12px; }
       section { padding: 18px; border-radius: 12px; }
-      .meta-row, .portfolio-grid, .impact-grid, .action-grid { grid-template-columns: 1fr; }
+      .meta-row, .portfolio-grid, .impact-grid, .tier-grid, .hero-amounts, .action-keyline { grid-template-columns: 1fr; }
       .card-head { flex-direction: column; }
     }
   </style>
@@ -136,113 +173,173 @@
 <main>
   <section>
     <div class="meta-row">
-      <div class="meta-pill">抓取时间：2026-06-12 11:15:45 CST</div>
+      <div class="meta-pill">抓取时间：2026-06-12 14:15:11 CST</div>
       <div class="meta-pill">数据质量：完整 / 100%</div>
       <div class="meta-pill">实时覆盖：3/3</div>
-      <div class="meta-pill">最旧实时数据：3.7 分钟</div>
+      <div class="meta-pill">最旧实时数据：3.1 分钟</div>
     </div>
     <div class="topline">
-      <span class="badge good">长期逻辑继续成立</span>
-      <span>长期逻辑总状态</span>
+      <span class="badge good">可执行</span>
+      <span>实时执行链路完整，可信度 100%</span>
     </div>
-    <h1>长期逻辑未变，今天只调整执行节奏</h1>
-    <p><b>组合仓位：</b>半导体约 9.9%，黄金合计约 12.9%，债基/货币基金约 77.1%。</p>
-    <p><b>今日执行：</b>012552 按原计划执行；021532 按原计划执行；000218 暂停新增</p>
-    <p><b>申购确认：</b>若 15:00 前下单，通常按当日净值确认</p>
-    <p class="section-note"><b>一句话原因：</b>长期复核已合并最近 1-2 个月原始信息、基金表现和当前仓位；实时数据只用于判断今天执行幅度。</p>
+    <h1>今日建议：买入半导体，不新增黄金</h1>
+    <div class="hero-amounts">
+      <div class="hero-amount">
+        <span class="eyebrow">建议买入合计</span>
+        <strong>1,200 元</strong>
+      </div>
+      <div class="hero-amount">
+        <span class="eyebrow">建议卖出合计</span>
+        <strong>0 元</strong>
+      </div>
+    </div>
+    <p><b>具体动作：</b>012552 天弘芯片产业ETF联接A 买入 800 元；021532 天弘半导体设备指数A 买入 400 元；000218 国泰黄金ETF联接A 持有 0 元</p>
+    <ul><li>建议买入合计 1,200 元，建议卖出合计 0 元。</li><li>本次没有卖出建议。</li><li>金额来自本次行情、长期证据和组合仓位，不使用固定默认比例。</li></ul>
+    <p class="section-note"><b>申购提醒：</b>若 15:00 前下单，通常按当日净值确认</p>
   </section>
 
-  
-    <section>
-      <h2>组合仓位概览</h2>
-      <p class="section-note">仓位来自用户手工提供，当前用于约束每日新增节奏。</p>
-      <div class="portfolio-grid">
-        
-            <article class="portfolio-panel">
-              <h3>半导体合计</h3>
-              <p class="amount">15,900 元</p>
-              <p>占总资产约 9.9%</p>
-              <p class="muted">半导体仓位处在中等偏低区间，核心仓可以继续承担计划内新增，设备仓需要控制节奏。</p>
-            </article>
-          
-            <article class="portfolio-panel">
-              <h3>黄金合计</h3>
-              <p class="amount">20,700 元</p>
-              <p>占总资产约 12.9%</p>
-              <p class="muted">黄金总防守仓已经包含 002611 存量仓，000218 不应因为单只金额偏低而自动补仓。</p>
-            </article>
-          
-            <article class="portfolio-panel">
-              <h3>债基/货币基金</h3>
-              <p class="amount">123,400 元</p>
-              <p>占总资产约 77.1%</p>
-              <p class="muted">现金类和低波动资产仍是组合主体，新增权益或黄金时可以小步执行。</p>
-            </article>
-          
+  <section>
+    <h2>今日操作建议</h2>
+    <p class="section-note">行动卡直接给动作、金额和证据。金额来自当次信息，不使用固定默认比例。</p>
+    <div class="action-list">
+        <article class="action-card">
+          <div class="card-head">
+            <div>
+              <h3>012552 天弘芯片产业ETF联接A</h3>
+              <p class="muted">半导体核心配置</p>
+            </div>
+            <span class="badge good">买入</span>
+          </div>
+          <div class="action-keyline">
+            <div>
+              <p class="eyebrow">本次更建议</p>
+              <p class="big-amount">800 元</p>
+            </div>
+            <p>半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。</p>
+          </div>
+
+    <div class="tier-grid">
+
+          <div class="tier">
+            <p class="tier-label">谨慎档</p>
+            <p class="tier-amount">500 元</p>
+            <p class="muted">不追高，保留小额参与。</p>
+          </div>
+
+          <div class="tier">
+            <p class="tier-label">均衡档</p>
+            <p class="tier-amount">800 元</p>
+            <p class="muted">核心仓、仓位仍有空间、当日没有明显追高。</p>
+          </div>
+
+          <div class="tier">
+            <p class="tier-label">积极档</p>
+            <p class="tier-amount">1,200 元</p>
+            <p class="muted">适合希望更快补半导体核心仓的人。</p>
+          </div>
+
+    </div>
+
+          <p><b>怎么做：</b>若 15:00 前下单，通常按当日净值确认；如果已经有未确认申购，先把本次金额扣掉或跳过。</p>
+          <p><b>申购提醒：</b>若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。</p>
+          <h4>证据支撑</h4>
+          <ul><li>仓位证据：012552 天弘芯片产业ETF联接A 当前约 11,500 元，占总资产约 7.2%；半导体合计约 9.9%，核心仓仍可作为半导体新增主入口。</li><li>行情证据：012552 天弘芯片产业ETF联接A 盘中估算 +0.26%，底层代理 +1.08%；正式净值近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。</li><li>长期证据：WSTS 2026-06-02 的信息显示，这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</li><li>判断逻辑：半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。</li></ul>
+        </article>
+
+        <article class="action-card">
+          <div class="card-head">
+            <div>
+              <h3>021532 天弘半导体设备指数A</h3>
+              <p class="muted">半导体设备弹性仓</p>
+            </div>
+            <span class="badge good">买入</span>
+          </div>
+          <div class="action-keyline">
+            <div>
+              <p class="eyebrow">本次更建议</p>
+              <p class="big-amount">400 元</p>
+            </div>
+            <p>设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。</p>
+          </div>
+
+    <div class="tier-grid">
+
+          <div class="tier">
+            <p class="tier-label">谨慎档</p>
+            <p class="tier-amount">200 元</p>
+            <p class="muted">设备仓只保留弹性，不快速放大。</p>
+          </div>
+
+          <div class="tier">
+            <p class="tier-label">均衡档</p>
+            <p class="tier-amount">400 元</p>
+            <p class="muted">金额低于核心仓，符合弹性仓定位。</p>
+          </div>
+
+          <div class="tier">
+            <p class="tier-label">积极档</p>
+            <p class="tier-amount">600 元</p>
+            <p class="muted">只适合希望略提高设备弹性的人。</p>
+          </div>
+
+    </div>
+
+          <p><b>怎么做：</b>若 15:00 前下单，通常按当日净值确认；如果已经有未确认申购，先把本次金额扣掉或跳过。</p>
+          <p><b>申购提醒：</b>若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。</p>
+          <h4>证据支撑</h4>
+          <ul><li>仓位证据：021532 天弘半导体设备指数A 当前约 4,400 元，占总资产约 2.8%；它是设备弹性仓，金额应明显低于核心仓。</li><li>行情证据：021532 天弘半导体设备指数A 盘中估算 -1.61%，底层代理 -1.23%；正式净值近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。</li><li>长期证据：WSTS 2026-06-02 的信息显示，这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</li><li>判断逻辑：设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。</li></ul>
+        </article>
+
+        <article class="action-card">
+          <div class="card-head">
+            <div>
+              <h3>000218 国泰黄金ETF联接A</h3>
+              <p class="muted">黄金防守仓</p>
+            </div>
+            <span class="badge watch">持有</span>
+          </div>
+          <div class="action-keyline">
+            <div>
+              <p class="eyebrow">本次更建议</p>
+              <p class="big-amount">0 元</p>
+            </div>
+            <p>黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。</p>
+          </div>
+
+    <div class="tier-grid">
+
+          <div class="tier">
+            <p class="tier-label">谨慎档</p>
+            <p class="tier-amount">0 元</p>
+            <p class="muted">黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。</p>
+          </div>
+
+          <div class="tier">
+            <p class="tier-label">均衡档</p>
+            <p class="tier-amount">0 元</p>
+            <p class="muted">黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。</p>
+          </div>
+
+          <div class="tier">
+            <p class="tier-label">积极档</p>
+            <p class="tier-amount">0 元</p>
+            <p class="muted">黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。</p>
+          </div>
+
+    </div>
+
+          <p><b>怎么做：</b>今天不买入，继续持有现有黄金防守仓。</p>
+          <p><b>申购提醒：</b>若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。</p>
+          <h4>证据支撑</h4>
+          <ul><li>仓位证据：000218 国泰黄金ETF联接A 当前约 11,100 元，占总资产约 6.9%；黄金合计含 002611 博时黄金ETF联接A 后约 12.9%，是否补仓按黄金总防守仓判断。</li><li>行情证据：000218 国泰黄金ETF联接A 盘中估算 +1.54%，底层代理 +1.88%；正式净值近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%，近 1 月 未知。</li><li>长期证据：SAFE 2026-06-07 的信息显示，央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</li><li>判断逻辑：黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。</li></ul>
+        </article>
       </div>
-      <div class="table-wrap compact-table">
-        <table>
-          <thead>
-            <tr>
-              <th>代码</th>
-              <th>名称</th>
-              <th>角色</th>
-              <th>金额</th>
-              <th>占比</th>
-              <th>新增状态</th>
-              <th>备注</th>
-            </tr>
-          </thead>
-          <tbody>
-      <tr>
-        <td>012552</td>
-        <td>天弘芯片产业ETF联接A</td>
-        <td>半导体核心配置</td>
-        <td>11,500 元</td>
-        <td>7.2%</td>
-        <td>可新增</td>
-        <td>半导体核心新增入口。</td>
-      </tr>
-    
-      <tr>
-        <td>021532</td>
-        <td>天弘半导体设备指数A</td>
-        <td>半导体设备弹性仓</td>
-        <td>4,400 元</td>
-        <td>2.8%</td>
-        <td>可新增</td>
-        <td>设备弹性仓，执行节奏必须慢于核心仓。</td>
-      </tr>
-    
-      <tr>
-        <td>000218</td>
-        <td>国泰黄金ETF联接A</td>
-        <td>黄金防守仓</td>
-        <td>11,100 元</td>
-        <td>6.9%</td>
-        <td>可新增</td>
-        <td>后续黄金新增只加到这只基金。</td>
-      </tr>
-    
-      <tr>
-        <td>002611</td>
-        <td>博时黄金ETF联接A</td>
-        <td>存量黄金仓</td>
-        <td>9,600 元</td>
-        <td>6.0%</td>
-        <td>只保留</td>
-        <td>只计入黄金总仓位，不再加仓，不输出行动卡。</td>
-      </tr>
-    </tbody>
-        </table>
-      </div>
-    </section>
-  
+  </section>
 
   <section>
     <h2>长期逻辑复核</h2>
     <div class="review-grid">
-      
+
     <article class="review-card">
       <div class="card-head">
         <h3>半导体长期逻辑</h3>
@@ -250,9 +347,9 @@
       </div>
       <p class="lead"><b>结论：</b>最近 1-2 个月的行业证据仍支持半导体 6-24 个月配置逻辑，今天主要是控制执行节奏。</p>
       <div class="impact-grid">
-        <p><b>是否改变配置逻辑：</b>不改变半导体作为长期配置方向的判断；核心仓继续按计划，设备仓按更高波动品种管理。</p>
-        <p><b>当前仓位含义：</b>半导体合计约 15,900 元，占总资产约 9.9%；其中 012552 约 11,500 元，021532 约 4,400 元。当前更适合让 012552 承担主要新增，021532 保持弹性仓节奏。</p>
-        <p><b>对今天执行节奏的影响：</b>半导体今天没有触发明显追高约束，执行重点是按计划、小额、分批。</p>
+        <p><b>是否改变配置逻辑：</b>不改变半导体作为长期配置方向的判断；核心仓可承接主要新增，设备仓按更高波动品种管理。</p>
+        <p><b>当前仓位含义：</b>半导体合计约 15,900 元，占总资产约 9.9%；其中 012552 天弘芯片产业ETF联接A 约 11,500 元，021532 天弘半导体设备指数A 约 4,400 元。当前更适合让 012552 天弘芯片产业ETF联接A 承担主要新增，021532 天弘半导体设备指数A 保持弹性仓节奏。</p>
+        <p><b>对今天动作和金额的影响：</b>半导体今天没有触发明显追高约束，执行重点是控制金额、分批买入。</p>
       </div>
       <h4>后续观察项</h4>
       <ul><li>AI 算力、先进存储和国产替代是否继续有订单与政策支撑。</li><li>设备方向若继续大幅跑赢核心仓，需要警惕短期回撤。</li><li>若出口管制或行业周期数据明显转弱，核心仓和设备仓都要重新评估。</li></ul>
@@ -261,43 +358,43 @@
         <h4>最近 1-2 个月发生了什么</h4>
         <ul><li>WSTS 2026-06-02：这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</li><li>WSTS 2026-06-02：长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。</li></ul>
         <h4>原始信息证据</h4>
-        
+
       <div class="evidence-row">
         <p><b>WSTS 上调 2026 年全球半导体市场规模预期</b></p>
         <p class="meta">WSTS｜2026-06-02｜<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">来源链接</a></p>
         <p><b>原始事实：</b>WSTS 在最新春季预测中写明，2026 年全球半导体市场预计同比增长 90% ，达到 1.51 万亿美元。</p>
         <p><b>逻辑含义：</b>这说明行业景气主线仍在，短期更需要判断节奏和波动位置，而不是怀疑半导体主逻辑是否突然结束。</p>
       </div>
-    
+
       <div class="evidence-row">
         <p><b>AI 基础设施和 HBM 仍是半导体长期驱动</b></p>
         <p class="meta">WSTS｜2026-06-02｜<a href="https://www.wsts.org/76/Recent-News-Release" target="_blank" rel="noreferrer">来源链接</a></p>
         <p><b>原始事实：</b>WSTS 指出，2026 年存储器预计同比增长约 250% ，规模超过 800 十亿美元；2027 年全球半导体市场还预计继续增长 27% 至约 1.9 万亿美元。</p>
         <p><b>逻辑含义：</b>长期逻辑仍然是 AI 算力、先进存储和算力基础设施扩张，半导体配置更像节奏管理，不像主线被证伪。</p>
       </div>
-    
+
         <h4>结合基金表现怎么看</h4>
-        
+
       <div class="fund-row">
         <p><b>012552 天弘芯片产业ETF联接A</b>｜半导体核心配置</p>
         <p>当前持有约 11,500 元，占总资产约 7.2%。</p>
         <p>最新正式净值 1.5535（2026-06-11），近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%，近 1 月 未知。</p>
-        <p>盘中估算 +0.79%（2026-06-12 11:12），底层代理 +1.16%（2026-06-12 11:15:38）。</p>
+        <p>盘中估算 +0.26%（2026-06-12 14:12），底层代理 +1.08%（2026-06-12 14:15:08）。</p>
         <p class="muted">核心仓更适合按长期计划执行，短期波动主要影响单日执行幅度。</p>
       </div>
-    
+
       <div class="fund-row">
         <p><b>021532 天弘半导体设备指数A</b>｜半导体设备弹性仓</p>
         <p>当前持有约 4,400 元，占总资产约 2.8%。</p>
         <p>最新正式净值 3.0854（2026-06-11），近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%，近 1 月 未知。</p>
-        <p>盘中估算 -0.91%（2026-06-12 11:12），底层代理 -0.83%（2026-06-12 11:15:38）。</p>
+        <p>盘中估算 -1.61%（2026-06-12 14:12），底层代理 -1.23%（2026-06-12 14:15:08）。</p>
         <p class="muted">设备仓相对核心仓弹性更高，若短期涨幅明显更强，执行上应更慢。</p>
       </div>
-    
+
       </details>
     </article>
-  
-      
+
+
     <article class="review-card">
       <div class="card-head">
         <h3>黄金长期逻辑</h3>
@@ -306,8 +403,8 @@
       <p class="lead"><b>结论：</b>最近 1-2 个月的央行购金和需求证据仍支持黄金防守仓逻辑，但短期承压时不自动补仓。</p>
       <div class="impact-grid">
         <p><b>是否改变配置逻辑：</b>不改变黄金作为组合防守仓的定位；是否补足取决于组合防守仓比例，而不是单日涨跌。</p>
-        <p><b>当前仓位含义：</b>黄金合计约 20,700 元，占总资产约 12.9%；其中 000218 约 11,100 元，002611 存量约 9,600 元。后续黄金新增只进 000218，但判断是否补仓要看黄金合计比例。</p>
-        <p><b>对今天执行节奏的影响：</b>黄金合计约 12.9%，不是明显不足状态，今天优先维持防守仓比例。</p>
+        <p><b>当前仓位含义：</b>黄金合计约 20,700 元，占总资产约 12.9%；其中 000218 国泰黄金ETF联接A 约 11,100 元，002611 博时黄金ETF联接A 存量约 9,600 元。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。</p>
+        <p><b>对今天动作和金额的影响：</b>黄金合计约 12.9%，不是明显不足状态，今天优先维持防守仓比例。</p>
       </div>
       <h4>后续观察项</h4>
       <ul><li>美元和美债实际利率是否继续压制黄金。</li><li>央行购金和黄金 ETF 资金流是否延续支撑。</li><li>若组合防守仓比例已经足够，黄金不需要因短线波动追补。</li></ul>
@@ -316,117 +413,49 @@
         <h4>最近 1-2 个月发生了什么</h4>
         <ul><li>SAFE 2026-06-07：央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</li><li>World Gold Council 2026-04-29：黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。</li></ul>
         <h4>原始信息证据</h4>
-        
+
       <div class="evidence-row">
         <p><b>中国 5 月官方黄金储备继续增加</b></p>
         <p class="meta">SAFE｜2026-06-07｜<a href="https://www.safe.gov.cn/safe/2026/0206/27116.html" target="_blank" rel="noreferrer">来源链接</a></p>
         <p><b>原始事实：</b>国家外汇管理局公布的官方储备资产显示，2026 年 5 月黄金储备为 7496 万盎司，高于 2026 年 4 月的 7464 万盎司；按美元计的黄金储备价值为 3407.52 亿美元。</p>
         <p><b>逻辑含义：</b>央行储备需求仍在累计，黄金作为防守仓的长期配置需求没有看到明显松动。</p>
       </div>
-    
+
       <div class="evidence-row">
         <p><b>WGC 季报显示黄金长期需求仍有央行与实物投资支撑</b></p>
         <p class="meta">World Gold Council｜2026-04-29｜<a href="https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q1-2026" target="_blank" rel="noreferrer">来源链接</a></p>
         <p><b>原始事实：</b>世界黄金协会 Q1 2026 季报显示，全球黄金总需求同比小幅升至 1,231 吨，总价值创 1930 亿美元新高；金条金币投资推动需求增长，ETF 买盘放缓，但央行仍保持较大买入力度。</p>
         <p><b>逻辑含义：</b>黄金的长期需求并不只靠短线避险，央行购金和实物投资仍在提供底层支撑，防守仓逻辑没有变。</p>
       </div>
-    
+
         <h4>结合基金表现怎么看</h4>
-        
+
       <div class="fund-row">
         <p><b>000218 国泰黄金ETF联接A</b>｜黄金防守仓</p>
         <p>当前持有约 11,100 元，占总资产约 6.9%。</p>
         <p>最新正式净值 3.2381（2026-06-11），近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%，近 1 月 未知。</p>
-        <p>盘中估算 +1.80%（2026-06-12 11:14），底层代理 +2.23%（2026-06-12 11:15:35）。</p>
+        <p>盘中估算 +1.54%（2026-06-12 14:13），底层代理 +1.88%（2026-06-12 14:15:05）。</p>
         <p class="muted">黄金承担防守和分散波动，不应把单日下跌自动等同于补仓机会。</p>
       </div>
-    
+
       </details>
     </article>
-  
+
     </div>
   </section>
 
-  <section>
-    <h2>具体基金行动卡</h2>
-    <div class="action-list">
-        <article class="action-card">
-          <div class="card-head">
-            <div>
-              <h3>012552 天弘芯片产业ETF联接A</h3>
-              <p class="muted">半导体核心配置</p>
-            </div>
-            <span class="badge good">按原计划执行</span>
-          </div>
-          <div class="action-grid">
-            <p><b>执行幅度：</b>正常计划金额</p>
-            <p><b>节奏：</b>按既定定投或分批计划执行，不临时放大。</p>
-          </div>
-          <p><b>原因：</b>核心半导体长期逻辑未变，今天盘中位置没有明显追高或恐慌特征。</p>
-          <p><b>仓位约束：</b>当前 012552 约 11,500 元，占总资产约 7.2%；半导体合计约 9.9%，核心仓可承担计划内新增，但不临时放大。</p>
-          <p><b>申购延迟：</b>若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。</p>
-          <h4>证据</h4>
-          <ul><li>盘中估算 +0.79%，时间 2026-06-12 11:12</li><li>底层代理 +1.16%，时间 2026-06-12 11:15:38</li><li>正式净值 1.5535，日期 2026-06-11，近 1 日 上涨 +0.63%</li></ul>
-          <h4>停止条件</h4>
-          <ul><li>若盘中快速拉升到明显追高区间，改为半额执行。</li></ul>
-        </article>
-      
-        <article class="action-card">
-          <div class="card-head">
-            <div>
-              <h3>021532 天弘半导体设备指数A</h3>
-              <p class="muted">半导体设备弹性仓</p>
-            </div>
-            <span class="badge good">按原计划执行</span>
-          </div>
-          <div class="action-grid">
-            <p><b>执行幅度：</b>计划内小额</p>
-            <p><b>节奏：</b>保持比核心仓更慢的节奏。</p>
-          </div>
-          <p><b>原因：</b>设备国产化逻辑仍在，但弹性仓天然波动更高，执行上要比核心仓克制。</p>
-          <p><b>仓位约束：</b>当前 021532 约 4,400 元，占总资产约 2.8%；它是弹性仓，虽然绝对占比不高，也不应在大涨日快速追到接近核心仓。</p>
-          <p><b>申购延迟：</b>若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。</p>
-          <h4>证据</h4>
-          <ul><li>盘中估算 -0.91%，时间 2026-06-12 11:12</li><li>底层代理 -0.83%，时间 2026-06-12 11:15:38</li><li>正式净值 3.0854，日期 2026-06-11，近 1 日 上涨 +5.02%</li></ul>
-          <h4>停止条件</h4>
-          <ul><li>若当日涨幅突然扩大，改为半额或暂停。</li></ul>
-        </article>
-      
-        <article class="action-card">
-          <div class="card-head">
-            <div>
-              <h3>000218 国泰黄金ETF联接A</h3>
-              <p class="muted">黄金防守仓</p>
-            </div>
-            <span class="badge stop">暂停新增</span>
-          </div>
-          <div class="action-grid">
-            <p><b>执行幅度：</b>不追补</p>
-            <p><b>节奏：</b>维持已有防守仓比例。</p>
-          </div>
-          <p><b>原因：</b>黄金上涨时不承担进攻任务，防守仓比例足够时没有必要追补。</p>
-          <p><b>仓位约束：</b>当前 000218 约 11,100 元，占总资产约 6.9%；但黄金合计含 002611 后约 12.9%，因此是否补仓按黄金总防守仓判断。</p>
-          <p><b>申购延迟：</b>若 15:00 前下单，通常按当日净值确认；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。</p>
-          <h4>证据</h4>
-          <ul><li>盘中估算 +1.80%，时间 2026-06-12 11:14</li><li>底层代理 +2.23%，时间 2026-06-12 11:15:35</li><li>正式净值 3.2381，日期 2026-06-11，近 1 日 下跌 -2.17%</li></ul>
-          <h4>停止条件</h4>
-          <ul><li>组合防守仓比例不足前，不因短线修复新增。</li></ul>
-        </article>
-      </div>
-  </section>
 
-  
     <section>
       <h2>正式净值复核</h2>
-      <p class="section-note">这一层只复核前一交易日结果，不覆盖今天的执行结论。</p>
+      <p class="section-note">这一层只复核前一交易日和近几日结果，不覆盖今天的动作和金额。</p>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>基金代码</th>
-              <th>基金名称</th>
+              <th>基金</th>
               <th>角色</th>
               <th>最新正式净值</th>
+              <th>今日估算</th>
               <th>近 1 日</th>
               <th>近 1 周</th>
               <th>近 1 月</th>
@@ -435,51 +464,148 @@
           </thead>
           <tbody>
       <tr>
-        <td>012552</td>
-        <td>天弘芯片产业ETF联接A</td>
+        <td>012552 天弘芯片产业ETF联接A</td>
         <td>半导体核心配置</td>
         <td>1.5535 / 2026-06-11</td>
+        <td>+0.26%</td>
         <td>上涨 +0.63%</td>
         <td>下跌 -4.86%</td>
         <td>未知</td>
-        <td>最新正式净值 1.5535（2026-06-11），近 1 日 上涨 +0.63%，近 1 周 下跌 -4.86%。</td>
+        <td>半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。</td>
       </tr>
-    
+
       <tr>
-        <td>021532</td>
-        <td>天弘半导体设备指数A</td>
+        <td>021532 天弘半导体设备指数A</td>
         <td>半导体设备弹性仓</td>
         <td>3.0854 / 2026-06-11</td>
+        <td>-1.61%</td>
         <td>上涨 +5.02%</td>
         <td>上涨 +8.91%</td>
         <td>未知</td>
-        <td>最新正式净值 3.0854（2026-06-11），近 1 日 上涨 +5.02%，近 1 周 上涨 +8.91%。</td>
+        <td>设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。</td>
       </tr>
-    
+
       <tr>
-        <td>000218</td>
-        <td>国泰黄金ETF联接A</td>
+        <td>000218 国泰黄金ETF联接A</td>
         <td>黄金防守仓</td>
         <td>3.2381 / 2026-06-11</td>
+        <td>+1.54%</td>
         <td>下跌 -2.17%</td>
         <td>下跌 -8.10%</td>
         <td>未知</td>
-        <td>最新正式净值 3.2381（2026-06-11），近 1 日 下跌 -2.17%，近 1 周 下跌 -8.10%。</td>
+        <td>黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。</td>
       </tr>
     </tbody>
         </table>
       </div>
     </section>
-  
+
 
   <section class="footer-note">
     <h2>来源与不确定性</h2>
     <p><b>信息来源摘要：</b>实时执行过滤器来自天天基金估值接口和腾讯行情代理；正式净值复核来自东方财富历史净值接口；长期逻辑复核证据来自 WSTS、World Gold Council 和 SAFE 等公开来源。</p>
-    <p><b>组合仓位来源：</b>总资产和基金持仓来自用户手工提供，002611 只计入黄金存量仓，不输出行动卡。</p>
+    <p><b>金额建议说明：</b>本次金额由当次行情位置、长期证据、基金角色和组合仓位共同推导，不使用固定默认比例。</p>
     <p><b>申购延迟：</b>基金申购不是实时成交，份额通常在下一交易日或更晚确认。 当前未过 15:00，若执行计划仍要留出净值确认和份额确认延迟。 自动化尚未接入交易记录；若已有未确认申购，需要人工同步，避免重复下单。</p>
-    <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤执行节奏，不能替代正式净值或长期基本面判断。</p>
+    <p><b>不确定性说明：</b>半导体代理仍是前十大持仓等权篮子，黄金代理为黄金 ETF 行情，它们适合过滤动作金额，不能替代正式净值或长期基本面判断。</p>
     <p><b>数据缺口：</b>本次未发现关键数据抓取缺口。</p>
   </section>
+
+
+    <section>
+      <h2>组合仓位概览</h2>
+      <p class="section-note">这一层放在最后，作为动作建议的背景材料。仓位来自用户手工提供。</p>
+      <div class="portfolio-grid">
+
+            <article class="portfolio-panel">
+              <h3>半导体合计</h3>
+              <p class="amount">15,900 元</p>
+              <p>占总资产约 9.9%</p>
+              <p class="muted">半导体仓位处在中等偏低区间，核心仓可以继续承担计划内新增，设备仓需要控制节奏。</p>
+            </article>
+
+            <article class="portfolio-panel">
+              <h3>黄金合计</h3>
+              <p class="amount">20,700 元</p>
+              <p>占总资产约 12.9%</p>
+              <p class="muted">黄金总防守仓已经包含 002611 博时黄金ETF联接A 存量仓，000218 国泰黄金ETF联接A 不应因为单只金额偏低而自动补仓。</p>
+            </article>
+
+            <article class="portfolio-panel">
+              <h3>债基/货币基金</h3>
+              <p class="amount">123,400 元</p>
+              <p>占总资产约 77.1%</p>
+              <p class="muted">现金类和低波动资产仍是组合主体，新增权益或黄金时可以小步执行。</p>
+            </article>
+
+      </div>
+      <div class="table-wrap compact-table">
+        <table>
+          <thead>
+            <tr>
+              <th>基金</th>
+              <th>角色</th>
+              <th>当前金额</th>
+              <th>占总资产</th>
+              <th>今日估算</th>
+              <th>近 1 日</th>
+              <th>近 1 周</th>
+              <th>近 1 月</th>
+              <th>当前状态</th>
+            </tr>
+          </thead>
+          <tbody>
+        <tr>
+          <td>012552 天弘芯片产业ETF联接A</td>
+          <td>半导体核心配置</td>
+          <td>11,500 元</td>
+          <td>7.2%</td>
+          <td>+0.26%</td>
+          <td>上涨 +0.63%</td>
+          <td>下跌 -4.86%</td>
+          <td>未知</td>
+          <td>核心仓，可作为半导体新增主入口。</td>
+        </tr>
+
+        <tr>
+          <td>021532 天弘半导体设备指数A</td>
+          <td>半导体设备弹性仓</td>
+          <td>4,400 元</td>
+          <td>2.8%</td>
+          <td>-1.61%</td>
+          <td>上涨 +5.02%</td>
+          <td>上涨 +8.91%</td>
+          <td>未知</td>
+          <td>设备弹性仓，只适合小额，不能快速接近核心仓。</td>
+        </tr>
+
+        <tr>
+          <td>000218 国泰黄金ETF联接A</td>
+          <td>黄金防守仓</td>
+          <td>11,100 元</td>
+          <td>6.9%</td>
+          <td>+1.54%</td>
+          <td>下跌 -2.17%</td>
+          <td>下跌 -8.10%</td>
+          <td>未知</td>
+          <td>防守仓，黄金合计约 12.9%，先按总黄金仓判断是否补。</td>
+        </tr>
+
+        <tr>
+          <td>002611 博时黄金ETF联接A</td>
+          <td>存量黄金仓</td>
+          <td>9,600 元</td>
+          <td>6.0%</td>
+          <td>未知</td>
+          <td>下跌 -2.14%</td>
+          <td>下跌 -8.00%</td>
+          <td>未知</td>
+          <td>存量黄金仓，只保留，不加仓，不输出行动卡。</td>
+        </tr>
+      </tbody>
+        </table>
+      </div>
+    </section>
+
 </main>
 </body>
 </html>

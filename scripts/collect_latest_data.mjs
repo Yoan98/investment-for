@@ -1275,7 +1275,7 @@ function buildDataQuality(funds) {
       fund_count: funds.length,
       oldest_realtime_freshness_minutes: oldestRealtimeFreshnessMinutes,
       can_issue_today_execution: true,
-      reason: "三只基金同时具备新鲜盘中估算和底层实时代理，可以判断是否执行原计划。",
+      reason: "三只基金同时具备新鲜盘中估算和底层实时代理，可以生成今天的动作和金额建议。",
     };
   }
 
@@ -1288,7 +1288,7 @@ function buildDataQuality(funds) {
       fund_count: funds.length,
       oldest_realtime_freshness_minutes: oldestRealtimeFreshnessMinutes,
       can_issue_today_execution: true,
-      reason: "部分基金缺少完整实时校验，只能对链路完整的基金给保守执行建议。",
+      reason: "部分基金缺少完整实时校验，只能对链路完整的基金给保守动作和金额建议。",
     };
   }
 
@@ -1300,7 +1300,7 @@ function buildDataQuality(funds) {
     fund_count: funds.length,
     oldest_realtime_freshness_minutes: oldestRealtimeFreshnessMinutes,
     can_issue_today_execution: false,
-    reason: "没有基金同时具备新鲜盘中估算和底层实时代理，今天不输出执行建议。",
+    reason: "没有基金同时具备新鲜盘中估算和底层实时代理，今天不输出动作和金额建议。",
   };
 }
 
@@ -1339,11 +1339,62 @@ function groupForKey(portfolioContext, key) {
   return portfolioContext?.groups?.find((group) => group.key === key) ?? null;
 }
 
-function buildPortfolioContext() {
+function officialNavUrlForCode(code) {
+  return `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${code}&pageIndex=1&pageSize=40`;
+}
+
+function fundFullName(item) {
+  if (!item) return "未知基金";
+  return `${item.code} ${item.name}`;
+}
+
+function marketByCode(marketFunds) {
+  return new Map((marketFunds ?? []).map((fund) => [fund.code, fund]));
+}
+
+function statusForPortfolioPosition(position, groups) {
+  if (position.code === "012552") {
+    return "核心仓，可作为半导体新增主入口。";
+  }
+
+  if (position.code === "021532") {
+    return "设备弹性仓，只适合小额，不能快速接近核心仓。";
+  }
+
+  if (position.code === "000218") {
+    const goldGroup = groups.find((group) => group.key === "gold_total");
+    return `防守仓，黄金合计约 ${formatAllocationPct(goldGroup?.allocation_pct)}，先按总黄金仓判断是否补。`;
+  }
+
+  if (position.code === "002611") {
+    return "存量黄金仓，只保留，不加仓，不输出行动卡。";
+  }
+
+  return "组合持仓背景项。";
+}
+
+function positionMarketSnapshot(position, marketFund) {
+  return {
+    today_estimate_pct: marketFund?.intraday_estimate?.change_pct ?? null,
+    underlying_proxy_pct: marketFund?.underlying_realtime?.change_pct ?? null,
+    nav: marketFund?.official_nav?.nav ?? null,
+    nav_date: marketFund?.official_nav?.nav_date ?? null,
+    performance_1d_pct: marketFund?.official_nav?.performance_1d_pct ?? null,
+    performance_1w_pct: marketFund?.official_nav?.performance_1w_pct ?? null,
+    performance_1m_pct: marketFund?.official_nav?.performance_1m_pct ?? null,
+    note: position.tracked_for_execution
+      ? "今日估算来自行动卡实时链路；正式净值只用于复核。"
+      : "存量仓不进入实时执行链路，仅展示正式净值表现。",
+  };
+}
+
+function buildPortfolioContext(marketFunds = []) {
   const totalAssets = PORTFOLIO_INPUT.total_assets;
+  const market = marketByCode(marketFunds);
   const positions = PORTFOLIO_INPUT.positions.map((position) => ({
     ...position,
     allocation_pct: allocationPct(position.amount, totalAssets),
+    market_snapshot: positionMarketSnapshot(position, market.get(position.code)),
   }));
 
   const semiconductorAmount = positions
@@ -1382,7 +1433,7 @@ function buildPortfolioContext() {
         .map((position) => position.code),
       tracked_addable_amount: trackedGoldAmount,
       interpretation:
-        "黄金总防守仓已经包含 002611 存量仓，000218 不应因为单只金额偏低而自动补仓。",
+        "黄金总防守仓已经包含 002611 博时黄金ETF联接A 存量仓，000218 国泰黄金ETF联接A 不应因为单只金额偏低而自动补仓。",
     },
     {
       key: "cash_like",
@@ -1398,7 +1449,10 @@ function buildPortfolioContext() {
   return {
     total_assets: totalAssets,
     as_of: PORTFOLIO_INPUT.as_of,
-    positions,
+    positions: positions.map((position) => ({
+      ...position,
+      current_status: statusForPortfolioPosition(position, groups),
+    })),
     groups,
     cash_like: groups.find((group) => group.key === "cash_like"),
     summary: `半导体约 ${formatAllocationPct(groups[0].allocation_pct)}，黄金合计约 ${formatAllocationPct(
@@ -1406,8 +1460,8 @@ function buildPortfolioContext() {
     )}，债基/货币基金约 ${formatAllocationPct(groups[2].allocation_pct)}。`,
     notes: [
       "组合仓位来自用户手工提供，自动化尚未接入账户实时持仓。",
-      "002611 只作为存量黄金仓计入黄金总仓位，不再输出行动卡，也不再建议加仓。",
-      "后续黄金新增只落到 000218。",
+      "002611 博时黄金ETF联接A 只作为存量黄金仓计入黄金总仓位，不再输出行动卡，也不再建议加仓。",
+      "后续黄金新增只落到 000218 国泰黄金ETF联接A。",
     ],
   };
 }
@@ -1496,18 +1550,18 @@ function buildSemiconductorReview(sourcePool, funds, portfolioContext) {
     evidence_items: evidenceItems,
     fund_evidence: fundEvidence,
     allocation_impact: hasEvidence
-      ? "不改变半导体作为长期配置方向的判断；核心仓继续按计划，设备仓按更高波动品种管理。"
+      ? "不改变半导体作为长期配置方向的判断；核心仓可承接主要新增，设备仓按更高波动品种管理。"
       : "长期配置方向需要等待更多原始信息确认，今天不适合放大半导体新增金额。",
     portfolio_impact: `半导体合计约 ${formatAmount(
       semiconductorGroup?.amount
     )}，占总资产约 ${formatAllocationPct(
       semiconductorGroup?.allocation_pct
-    )}；其中 012552 约 ${formatAmount(coreAmount)}，021532 约 ${formatAmount(
+    )}；其中 012552 天弘芯片产业ETF联接A 约 ${formatAmount(coreAmount)}，021532 天弘半导体设备指数A 约 ${formatAmount(
       equipmentAmount
-    )}。当前更适合让 012552 承担主要新增，021532 保持弹性仓节奏。`,
+    )}。当前更适合让 012552 天弘芯片产业ETF联接A 承担主要新增，021532 天弘半导体设备指数A 保持弹性仓节奏。`,
     execution_impact: equipmentHot
-      ? `012552 当前盘中估算 ${formatPercent(core?.intraday_estimate?.change_pct)}，可按计划；021532 盘中估算 ${formatPercent(equipment?.intraday_estimate?.change_pct)}、代理 ${formatPercent(equipment?.underlying_realtime?.change_pct)}，短期过热，执行减半。`
-      : "半导体今天没有触发明显追高约束，执行重点是按计划、小额、分批。",
+      ? `012552 天弘芯片产业ETF联接A 当前盘中估算 ${formatPercent(core?.intraday_estimate?.change_pct)}；021532 天弘半导体设备指数A 盘中估算 ${formatPercent(equipment?.intraday_estimate?.change_pct)}、代理 ${formatPercent(equipment?.underlying_realtime?.change_pct)}，短期过热时应降低金额。`
+      : "半导体今天没有触发明显追高约束，执行重点是控制金额、分批买入。",
     watch_items: [
       "AI 算力、先进存储和国产替代是否继续有订单与政策支撑。",
       "设备方向若继续大幅跑赢核心仓，需要警惕短期回撤。",
@@ -1551,13 +1605,13 @@ function buildGoldReview(sourcePool, funds, portfolioContext) {
       goldGroup?.amount
     )}，占总资产约 ${formatAllocationPct(
       goldGroup?.allocation_pct
-    )}；其中 000218 约 ${formatAmount(
+    )}；其中 000218 国泰黄金ETF联接A 约 ${formatAmount(
       currentGoldAmount
-    )}，002611 存量约 ${formatAmount(
+    )}，002611 博时黄金ETF联接A 存量约 ${formatAmount(
       legacyGoldAmount
-    )}。后续黄金新增只进 000218，但判断是否补仓要看黄金合计比例。`,
+    )}。后续黄金新增只进 000218 国泰黄金ETF联接A，但判断是否补仓要看黄金合计比例。`,
     execution_impact: goldPressure
-      ? `000218 盘中估算 ${formatPercent(gold?.intraday_estimate?.change_pct)}、黄金 ETF 代理 ${formatPercent(gold?.underlying_realtime?.change_pct)}，短期压力明显，今天仅观察。`
+      ? `000218 国泰黄金ETF联接A 盘中估算 ${formatPercent(gold?.intraday_estimate?.change_pct)}、黄金 ETF 代理 ${formatPercent(gold?.underlying_realtime?.change_pct)}，短期压力明显，今天先观望。`
       : `黄金合计约 ${formatAllocationPct(
           goldGroup?.allocation_pct
         )}，不是明显不足状态，今天优先维持防守仓比例。`,
@@ -1579,26 +1633,6 @@ function buildThesisReviews(sourcePool, funds, portfolioContext) {
 function thesisForFund(fund, thesisReviews) {
   if (fund.code === "000218") return thesisReviews.gold;
   return thesisReviews.semiconductor;
-}
-
-function buildDataQualityNote(fund, dataQuality) {
-  if (hasCompleteRealtime(fund)) {
-    return "这只基金今天具备盘中估算和底层代理，可以用于执行节奏判断。";
-  }
-
-  if (dataQuality.status === "blocked") {
-    return "今天实时执行链路不可用，只保留长期逻辑和正式净值复核。";
-  }
-
-  if (hasFreshEstimate(fund)) {
-    return "盘中估算可用，但底层代理缺失或过旧，执行建议需要收紧。";
-  }
-
-  if (hasFreshUnderlying(fund)) {
-    return "底层代理可用，但基金盘中估算缺失或过旧，执行建议需要收紧。";
-  }
-
-  return "这只基金今天缺少可核验的实时执行数据。";
 }
 
 function evidenceForFund(fund) {
@@ -1624,241 +1658,308 @@ function evidenceForFund(fund) {
   return evidence;
 }
 
-function portfolioConstraintForFund(fund, portfolioContext) {
+function portfolioEvidenceForFund(fund, portfolioContext) {
   const semiconductorGroup = groupForKey(portfolioContext, "semiconductor");
   const goldGroup = groupForKey(portfolioContext, "gold_total");
   const fundAmount = amountForCode(portfolioContext, fund.code);
   const fundAllocation = allocationPct(fundAmount, portfolioContext?.total_assets);
 
   if (fund.code === "012552") {
-    return `当前 012552 约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
+    return `仓位证据：${fundFullName(fund)} 当前约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
       fundAllocation
     )}；半导体合计约 ${formatAllocationPct(
       semiconductorGroup?.allocation_pct
-    )}，核心仓可承担计划内新增，但不临时放大。`;
+    )}，核心仓仍可作为半导体新增主入口。`;
   }
 
   if (fund.code === "021532") {
-    return `当前 021532 约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
+    return `仓位证据：${fundFullName(fund)} 当前约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
       fundAllocation
-    )}；它是弹性仓，虽然绝对占比不高，也不应在大涨日快速追到接近核心仓。`;
+    )}；它是设备弹性仓，金额应明显低于核心仓。`;
   }
 
-  return `当前 000218 约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
+  return `仓位证据：${fundFullName(fund)} 当前约 ${formatAmount(fundAmount)}，占总资产约 ${formatAllocationPct(
     fundAllocation
-  )}；但黄金合计含 002611 后约 ${formatAllocationPct(
+  )}；黄金合计含 002611 博时黄金ETF联接A 后约 ${formatAllocationPct(
     goldGroup?.allocation_pct
-  )}，因此是否补仓按黄金总防守仓判断。`;
+  )}，是否补仓按黄金总防守仓判断。`;
 }
 
 function settlementNoteForFund(settlementContext) {
   return `${settlementContext.execution_timing_label}；份额确认有延迟，若已有未确认申购，需要先人工扣减今日计划。`;
 }
 
-function buildExecutionPlan(
+function roundedAmount(value) {
+  const parsed = toNumber(value);
+  if (parsed === null) return 0;
+  return Math.round(parsed / 100) * 100;
+}
+
+function amountTier(label, amount, description) {
+  return {
+    label,
+    amount: roundedAmount(amount),
+    description,
+  };
+}
+
+function zeroAmountTiers(reason) {
+  return [
+    amountTier("谨慎档", 0, reason),
+    amountTier("均衡档", 0, reason),
+    amountTier("积极档", 0, reason),
+  ];
+}
+
+function amountTiersForBuy(fund, marketTone) {
+  if (fund.code === "012552") {
+    if (marketTone === "hot") {
+      return [
+        amountTier("谨慎档", 300, "半导体核心仓可买，但盘中位置偏高，先压低金额。"),
+        amountTier("均衡档", 500, "保留参与，但不把追高变成加速买入。"),
+        amountTier("积极档", 800, "只适合能承受短线回撤的人。"),
+      ];
+    }
+
+    if (marketTone === "pullback") {
+      return [
+        amountTier("谨慎档", 800, "长期逻辑未变，回落时可小步提高核心仓金额。"),
+        amountTier("均衡档", 1200, "仓位仍有空间，回落改善了执行位置。"),
+        amountTier("积极档", 1600, "只适合确认没有未完成申购且能承受波动的人。"),
+      ];
+    }
+
+    return [
+      amountTier("谨慎档", 500, "不追高，保留小额参与。"),
+      amountTier("均衡档", 800, "核心仓、仓位仍有空间、当日没有明显追高。"),
+      amountTier("积极档", 1200, "适合希望更快补半导体核心仓的人。"),
+    ];
+  }
+
+  if (fund.code === "021532") {
+    if (marketTone === "pullback") {
+      return [
+        amountTier("谨慎档", 200, "设备仓波动更大，只能小额买入。"),
+        amountTier("均衡档", 400, "回落改善位置，但金额仍低于核心仓。"),
+        amountTier("积极档", 600, "只适合能接受设备链更大波动的人。"),
+      ];
+    }
+
+    return [
+      amountTier("谨慎档", 200, "设备仓只保留弹性，不快速放大。"),
+      amountTier("均衡档", 400, "金额低于核心仓，符合弹性仓定位。"),
+      amountTier("积极档", 600, "只适合希望略提高设备弹性的人。"),
+    ];
+  }
+
+  return [
+    amountTier("谨慎档", 300, "黄金只做防守仓补足。"),
+    amountTier("均衡档", 500, "仅在黄金总仓不足时小额补 000218 国泰黄金ETF联接A。"),
+    amountTier("积极档", 800, "不把黄金当进攻仓，积极档也要控制金额。"),
+  ];
+}
+
+function recommendedAmountFromTiers(tiers, label = "均衡档") {
+  return tiers.find((tier) => tier.label === label)?.amount ?? tiers[0]?.amount ?? 0;
+}
+
+function marketToneForFund(fund) {
+  const estimatePct = toNumber(fund.intraday_estimate?.change_pct);
+  const proxyPct = toNumber(fund.underlying_realtime?.change_pct);
+
+  if (fund.code === "012552") {
+    if ((estimatePct ?? 0) >= 1.5 || (proxyPct ?? 0) >= 2) return "hot";
+    if ((estimatePct ?? 0) <= -1 && (proxyPct ?? 0) <= -1) return "pullback";
+    return "neutral";
+  }
+
+  if (fund.code === "021532") {
+    if ((estimatePct ?? 0) >= 2 || (proxyPct ?? 0) >= 3) return "hot";
+    if ((estimatePct ?? 0) <= -1.5 && (proxyPct ?? 0) <= -1.5) return "pullback";
+    return "neutral";
+  }
+
+  if ((estimatePct ?? 0) >= 1.5 || (proxyPct ?? 0) >= 1.5) return "hot";
+  if ((estimatePct ?? 0) <= -2 || (proxyPct ?? 0) <= -2) return "pressure";
+  return "neutral";
+}
+
+function actionLabel(action) {
+  if (action === "buy") return "买入";
+  if (action === "sell") return "卖出";
+  if (action === "hold") return "持有";
+  if (action === "watch") return "观望";
+  return "今日不操作";
+}
+
+function firstThesisEvidence(thesis) {
+  const item = thesis?.evidence_items?.[0];
+  if (!item) return null;
+  return `长期证据：${item.source} ${item.time} 的信息显示，${item.logic_impact}`;
+}
+
+function actionEvidenceSupport(fund, thesis, portfolioContext, actionReason) {
+  const official = fund.official_nav;
+  const evidence = [
+    portfolioEvidenceForFund(fund, portfolioContext),
+    `行情证据：${fundFullName(fund)} 盘中估算 ${formatPercent(
+      fund.intraday_estimate?.change_pct
+    )}，底层代理 ${formatPercent(
+      fund.underlying_realtime?.change_pct
+    )}；正式净值近 1 日 ${changeWord(
+      official?.performance_1d_pct
+    )}，近 1 周 ${changeWord(official?.performance_1w_pct)}，近 1 月 ${changeWord(
+      official?.performance_1m_pct
+    )}。`,
+  ];
+  const thesisEvidence = firstThesisEvidence(thesis);
+  if (thesisEvidence) evidence.push(thesisEvidence);
+  evidence.push(`判断逻辑：${actionReason}`);
+  return evidence;
+}
+
+function buildActionPlan(
   fund,
   dataQuality,
-  portfolioThesis,
+  thesisReviews,
   portfolioContext,
   settlementContext
 ) {
-  const thesis = thesisForFund(fund, portfolioThesis);
-  const estimatePct = toNumber(fund.intraday_estimate?.change_pct);
-  const proxyPct = toNumber(fund.underlying_realtime?.change_pct);
-  const evidence = evidenceForFund(fund);
-  const portfolioConstraint = portfolioConstraintForFund(fund, portfolioContext);
-  const settlementNote = settlementNoteForFund(settlementContext);
+  const thesis = thesisForFund(fund, thesisReviews);
+  const tone = marketToneForFund(fund);
   const goldAllocationPct = groupForKey(portfolioContext, "gold_total")?.allocation_pct;
-  const finish = (plan) => ({
-    ...plan,
-    portfolio_constraint: portfolioConstraint,
+  const settlementNote = settlementNoteForFund(settlementContext);
+
+  const finish = ({
+    action,
+    amountTiers,
+    recommendedAmount,
+    recommendedTierLabel = "均衡档",
+    howToExecute,
+    reason,
+  }) => ({
+    action,
+    action_label: actionLabel(action),
+    amount_tiers: amountTiers,
+    recommended_amount: roundedAmount(recommendedAmount),
+    recommended_label:
+      roundedAmount(recommendedAmount) === 0
+        ? "本次更建议 0 元"
+        : `本次更建议 ${formatAmount(roundedAmount(recommendedAmount))}`,
+    recommended_tier_label: recommendedTierLabel,
+    how_to_execute: howToExecute,
+    reason,
+    evidence_support: actionEvidenceSupport(fund, thesis, portfolioContext, reason),
     settlement_note: settlementNote,
   });
 
   if (!dataQuality.can_issue_today_execution || !hasCompleteRealtime(fund)) {
+    const reason = "缺少完整实时执行过滤器，不能把旧数据转成今天的买卖金额。";
     return finish({
-      action: "no_today_action",
-      action_label: "今日不输出执行建议",
-      amount_label: "不新增",
-      cadence: "等待下一次实时链路完整后再判断执行节奏。",
-      reason: "长期逻辑可以复核，但缺少完整实时执行过滤器，不能把旧数据当成动作依据。",
-      evidence,
-      stop_conditions: [
-        "实时数据恢复前，不把正式净值或旧估值用于新增。",
-      ],
+      action: "no_action",
+      amountTiers: zeroAmountTiers(reason),
+      recommendedAmount: 0,
+      howToExecute: "今天不下单，等实时链路恢复后再判断。",
+      reason,
     });
   }
 
   if (thesis.status === "red") {
+    const reason = "长期逻辑明显转弱，今天先不新增；若后续确认风险扩大，再单独评估是否卖出。";
     return finish({
-      action: "pause_new",
-      action_label: "暂停新增",
-      amount_label: "不新增",
-      cadence: "先做长期逻辑再评估，不急于执行计划。",
-      reason: "长期逻辑已经明显转弱，数据再新也只能说明今天价格位置，不能支持继续新增。",
-      evidence,
-      stop_conditions: ["长期逻辑没有重新转绿前，不恢复计划内买入。"],
+      action: "no_action",
+      amountTiers: zeroAmountTiers(reason),
+      recommendedAmount: 0,
+      howToExecute: "今天不新增，先保留现金和债基仓位。",
+      reason,
     });
   }
 
   if (thesis.status === "yellow") {
+    const reason = "长期逻辑仍需确认，今天不适合因为盘中波动主动扩大仓位。";
     return finish({
-      action: "observe_only",
-      action_label: "仅观察",
-      amount_label: "不新增",
-      cadence: "等待长期锚点补充确认。",
-      reason: "长期逻辑还需要确认，今天不应该因为盘中波动主动扩大仓位。",
-      evidence,
-      stop_conditions: ["没有新的长期锚点前，不把回调当成自动加仓信号。"],
+      action: "watch",
+      amountTiers: zeroAmountTiers(reason),
+      recommendedAmount: 0,
+      howToExecute: "今天不新增，等待长期证据补充。",
+      reason,
     });
   }
 
-  if (fund.code === "012552") {
-    if ((estimatePct ?? 0) >= 1.5 || (proxyPct ?? 0) >= 2) {
+  if (fund.code === "000218") {
+    if ((goldAllocationPct ?? 0) >= 12) {
+      const reason = "黄金合计仓位已经不低，黄金防守仓不需要因为单只基金金额偏低而补。";
       return finish({
-        action: "half_plan",
-        action_label: "半额执行",
-        amount_label: "计划金额减半",
-        cadence: "只保留计划内动作，不追涨放大。",
-        reason: "核心半导体长期逻辑未变，但今天盘中位置偏高，适合降低执行强度。",
-        evidence,
-        stop_conditions: ["若估值涨幅继续扩大或代理明显背离，剩余计划推迟到下一交易日。"],
+        action: "hold",
+        amountTiers: zeroAmountTiers(reason),
+        recommendedAmount: 0,
+        howToExecute: "今天不买入，继续持有现有黄金防守仓。",
+        reason,
       });
     }
 
-    if ((estimatePct ?? 0) <= -1 && (proxyPct ?? 0) <= -1) {
+    if (tone === "hot") {
+      const reason = "黄金当日位置偏强，防守仓不承担追涨任务。";
       return finish({
-        action: "small_approach",
-        action_label: "小额靠近",
-        amount_label: "低于正常计划金额",
-        cadence: "分批执行，单笔保持小。",
-        reason: "核心半导体长期逻辑未变，盘中回落提供更好的执行位置，但还不是重仓信号。",
-        evidence,
-        stop_conditions: ["若出现行业逻辑负面消息，停止把回落视为买点。"],
+        action: "hold",
+        amountTiers: zeroAmountTiers(reason),
+        recommendedAmount: 0,
+        howToExecute: "今天不买入，避免把防守仓做成进攻仓。",
+        reason,
       });
     }
 
-    return finish({
-      action: "normal_plan",
-      action_label: "按原计划执行",
-      amount_label: "正常计划金额",
-      cadence: "按既定定投或分批计划执行，不临时放大。",
-      reason: "核心半导体长期逻辑未变，今天盘中位置没有明显追高或恐慌特征。",
-      evidence,
-      stop_conditions: ["若盘中快速拉升到明显追高区间，改为半额执行。"],
-    });
-  }
-
-  if (fund.code === "021532") {
-    if ((estimatePct ?? 0) >= 2 || (proxyPct ?? 0) >= 3) {
+    if (tone === "pressure") {
+      const reason = "黄金短线承压，但单日下跌不能自动等同于补仓机会。";
       return finish({
-        action: "half_plan",
-        action_label: "半额执行",
-        amount_label: "计划金额减半",
-        cadence: "设备仓只慢慢靠近，不追强势尖峰。",
-        reason: "设备链长期逻辑未变，但弹性仓今天涨幅较大，追高后的回撤风险高于核心仓。",
-        evidence,
-        stop_conditions: ["若设备代理涨幅继续扩大，剩余买入推迟。"],
+        action: "watch",
+        amountTiers: zeroAmountTiers(reason),
+        recommendedAmount: 0,
+        howToExecute: "今天先观望，等待宏观利率和正式净值复核。",
+        reason,
       });
     }
 
-    if ((estimatePct ?? 0) <= -1.5 && (proxyPct ?? 0) <= -1.5) {
-      return finish({
-        action: "small_approach",
-        action_label: "小额靠近",
-        amount_label: "低于核心仓计划金额",
-        cadence: "只做试探，不把弹性仓当核心仓补。",
-        reason: "设备仓回落可以改善执行位置，但波动大，不能因为下跌就放大单笔。",
-        evidence,
-        stop_conditions: ["若设备链基本面或订单预期转弱，停止新增。"],
-      });
-    }
-
+    const tiers = amountTiersForBuy(fund, tone);
+    const recommended = recommendedAmountFromTiers(tiers);
+    const reason = "黄金总防守仓偏低，且当日行情没有显示追高或极端失真，可以小额补 000218 国泰黄金ETF联接A。";
     return finish({
-      action: "normal_plan",
-      action_label: "按原计划执行",
-      amount_label: "计划内小额",
-      cadence: "保持比核心仓更慢的节奏。",
-      reason: "设备国产化逻辑仍在，但弹性仓天然波动更高，执行上要比核心仓克制。",
-      evidence,
-      stop_conditions: ["若当日涨幅突然扩大，改为半额或暂停。"],
+      action: "buy",
+      amountTiers: tiers,
+      recommendedAmount: recommended,
+      howToExecute: "只做防守仓比例补足，不把黄金当进攻仓。",
+      reason,
     });
   }
 
-  if ((estimatePct ?? 0) <= -2 || (proxyPct ?? 0) <= -2) {
+  if (fund.code === "021532" && tone === "hot") {
+    const reason = "设备仓当日位置偏热，弹性仓追高后的回撤风险高于核心仓。";
     return finish({
-      action: "observe_only",
-      action_label: "仅观察",
-      amount_label: "不主动追补",
-      cadence: "维持防守仓定位，等正式净值和宏观信号复核。",
-      reason: "黄金今天明显承压，但防守仓不应因为单日下跌自动补仓，先看美元、美债和实际利率压力是否延续。",
-      evidence,
-      stop_conditions: ["若美元或实际利率继续上行，不把下跌视为补仓信号。"],
+      action: "watch",
+      amountTiers: zeroAmountTiers(reason),
+      recommendedAmount: 0,
+      howToExecute: "今天不买设备仓，保留现金等待更好的执行位置。",
+      reason,
     });
   }
 
-  if ((estimatePct ?? 0) >= 1.5 || (proxyPct ?? 0) >= 1.5) {
-    return finish({
-      action: "pause_new",
-      action_label: "暂停新增",
-      amount_label: "不追补",
-      cadence: "维持已有防守仓比例。",
-      reason: "黄金上涨时不承担进攻任务，防守仓比例足够时没有必要追补。",
-      evidence,
-      stop_conditions: ["组合防守仓比例不足前，不因短线修复新增。"],
-    });
-  }
-
-  if ((goldAllocationPct ?? 0) >= 12) {
-    return finish({
-      action: "observe_only",
-      action_label: "仅观察",
-      amount_label: "不主动追补",
-      cadence: "黄金总防守仓不低，维持比例，不因单只 000218 金额较低而补仓。",
-      reason: "黄金长期防守逻辑未变，但当前黄金合计仓位已经包含 002611 存量仓，今天没有必须补足的组合缺口。",
-      evidence,
-      stop_conditions: ["只有黄金总仓位明显低于计划比例，才恢复 000218 小额补足。"],
-    });
-  }
-
-  if ((goldAllocationPct ?? 0) < 8) {
-    return finish({
-      action: "small_approach",
-      action_label: "小额靠近",
-      amount_label: "低于正常计划金额",
-      cadence: "只做防守仓比例补足，不把黄金当进攻仓。",
-      reason: "黄金长期防守逻辑未变，且黄金总仓位偏低，可以用 000218 小额补足。",
-      evidence,
-      stop_conditions: ["若宏观利率压力明显增强，暂停新增。"],
-    });
-  }
+  const tiers = amountTiersForBuy(fund, tone);
+  const recommended = recommendedAmountFromTiers(tiers);
+  const reason =
+    fund.code === "012552"
+      ? "半导体长期逻辑继续成立，核心仓仍有承接新增的空间，今天的位置没有触发不买条件。"
+      : "设备国产化和行业景气逻辑仍在，但它是弹性仓，所以金额必须低于核心仓。";
 
   return finish({
-    action: "normal_plan",
-    action_label: "按原计划执行",
-    amount_label: "仅限计划内防守仓比例",
-    cadence: "只做比例维护，不把黄金当进攻仓。",
-    reason: "黄金长期防守逻辑未变，今天波动没有触发暂停或追补条件。",
-    evidence,
-    stop_conditions: ["若宏观利率压力明显增强，暂停新增。"],
+    action: "buy",
+    amountTiers: tiers,
+    recommendedAmount: recommended,
+    howToExecute: `${settlementContext.execution_timing_label}；如果已经有未确认申购，先把本次金额扣掉或跳过。`,
+    reason,
   });
 }
 
-function buildTriggerCheck(fund, dataQuality) {
-  return {
-    intraday_position: `盘中估算 ${formatPercent(
-      fund.intraday_estimate?.change_pct
-    )}，底层代理 ${formatPercent(fund.underlying_realtime?.change_pct)}。`,
-    official_nav_review: `最新正式净值 ${fund.official_nav?.nav ?? "未知"}（${
-      fund.official_nav?.nav_date ?? "未知"
-    }），近 1 日 ${changeWord(fund.official_nav?.performance_1d_pct)}，近 1 周 ${changeWord(
-      fund.official_nav?.performance_1w_pct
-    )}。`,
-    data_quality_note: buildDataQualityNote(fund, dataQuality),
-  };
-}
-
-function addLongTermExecutionFields(
+function addActionFields(
   funds,
   dataQuality,
   thesisReviews,
@@ -1870,14 +1971,13 @@ function addLongTermExecutionFields(
     return {
       ...fund,
       thesis_status: thesisStatus,
-      execution_plan: buildExecutionPlan(
+      action_plan: buildActionPlan(
         fund,
         dataQuality,
         thesisReviews,
         portfolioContext,
         settlementContext
       ),
-      trigger_check: buildTriggerCheck(fund, dataQuality),
     };
   });
 }
@@ -1893,32 +1993,60 @@ function weakestThesisStatus(thesisReviews) {
   );
 }
 
-function buildTopConclusion(dataQuality, thesisReviews, funds, portfolioContext) {
+function buildTopConclusion(dataQuality, thesisReviews, funds, settlementContext) {
   const status = weakestThesisStatus(thesisReviews);
   const actionSummary = dataQuality.can_issue_today_execution
     ? funds
-        .map((fund) => `${fund.code} ${fund.execution_plan?.action_label ?? "未知"}`)
+        .map((fund) => {
+          const plan = fund.action_plan ?? {};
+          return `${fundFullName(fund)} ${plan.action_label ?? "未知"} ${formatAmount(
+            plan.recommended_amount ?? 0
+          )}`;
+        })
         .join("；")
-    : "今日不输出执行建议，只保留长期逻辑复核和正式净值复核";
+    : "今日不操作，只保留长期逻辑复核和正式净值复核";
+  const totalBuyAmount = funds.reduce((sum, fund) => {
+    const amount = toNumber(fund.action_plan?.recommended_amount) ?? 0;
+    return amount > 0 ? sum + amount : sum;
+  }, 0);
+  const totalSellAmount = Math.abs(
+    funds.reduce((sum, fund) => {
+      const amount = toNumber(fund.action_plan?.recommended_amount) ?? 0;
+      return amount < 0 ? sum + amount : sum;
+    }, 0)
+  );
+  const buyFunds = funds.filter((fund) => fund.action_plan?.action === "buy");
+  const sellFunds = funds.filter((fund) => fund.action_plan?.action === "sell");
+  const goldPlan = funds.find((fund) => fund.code === "000218")?.action_plan;
+  const headline = dataQuality.can_issue_today_execution
+    ? `${buyFunds.length > 0 ? "今日建议：买入半导体" : "今日建议：不新增权益"}${
+        goldPlan?.action === "buy" ? "，小额补黄金" : "，不新增黄金"
+      }`
+    : "今日建议：数据不足，不操作";
 
   return {
     status,
     status_label:
-      status === "green"
-        ? "长期逻辑继续成立"
+      dataQuality.status === "blocked"
+        ? "暂停"
+        : status === "green"
+          ? "可执行"
         : status === "yellow"
-          ? "长期逻辑边际观察"
-          : "长期逻辑明显转弱",
-    headline:
-      status === "green"
-        ? "长期逻辑未变，今天只调整执行节奏"
-        : status === "yellow"
-          ? "长期逻辑需要继续确认，今天执行节奏收紧"
-          : "长期逻辑转弱，今天暂停新增并重新评估",
+          ? "收紧"
+          : "暂停",
+    headline,
     action_summary: actionSummary,
-    portfolio_summary: portfolioContext.summary,
-    reason:
-      "长期复核已合并最近 1-2 个月原始信息、基金表现和当前仓位；实时数据只用于判断今天执行幅度。",
+    total_buy_amount: totalBuyAmount,
+    total_sell_amount: totalSellAmount,
+    focus: [
+      `建议买入合计 ${formatAmount(totalBuyAmount)}，建议卖出合计 ${formatAmount(totalSellAmount)}。`,
+      sellFunds.length > 0
+        ? `需要卖出的基金：${sellFunds.map(fundFullName).join("、")}。`
+        : "本次没有卖出建议。",
+      "金额来自本次行情、长期证据和组合仓位，不使用固定默认比例。",
+    ],
+    settlement_warning: settlementContext.execution_timing_label,
+    data_status: `${dataQuality.label}，可信度 ${dataQuality.confidence_pct}%`,
   };
 }
 
@@ -1939,21 +2067,41 @@ async function collectFund(fund, quoteSnapshot) {
   };
 }
 
+async function collectPortfolioOnlyFund(position) {
+  const officialNav = await collectOfficialNav({
+    code: position.code,
+    officialNavUrl: officialNavUrlForCode(position.code),
+  });
+
+  return {
+    code: position.code,
+    name: position.name,
+    role: position.role,
+    intraday_estimate: null,
+    official_nav: officialNav,
+    underlying_realtime: null,
+  };
+}
+
 async function main() {
   const outPath = getArg("--out", DEFAULT_OUT);
   const reportDate = getArg("--date", todayInShanghai());
 
   const quoteSnapshot = await collectRealtimeQuoteSnapshot(FUND_CONFIG);
-  const [funds, infoItems] = await Promise.all([
+  const portfolioOnlyPositions = PORTFOLIO_INPUT.positions.filter(
+    (position) => !position.tracked_for_execution
+  );
+  const [funds, portfolioOnlyFunds, infoItems] = await Promise.all([
     Promise.all(FUND_CONFIG.map((fund) => collectFund(fund, quoteSnapshot))),
+    Promise.all(portfolioOnlyPositions.map(collectPortfolioOnlyFund)),
     collectOfficialInfoItems(),
   ]);
   const generatedAt = nowIso();
-  const portfolioContext = buildPortfolioContext();
+  const portfolioContext = buildPortfolioContext([...funds, ...portfolioOnlyFunds]);
   const settlementContext = buildSettlementContext(generatedAt);
   const dataQuality = buildDataQuality(funds);
   const thesisReviews = buildThesisReviews(infoItems, funds, portfolioContext);
-  const analyzedFunds = addLongTermExecutionFields(
+  const analyzedFunds = addActionFields(
     funds,
     dataQuality,
     thesisReviews,
@@ -1964,12 +2112,12 @@ async function main() {
     dataQuality,
     thesisReviews,
     analyzedFunds,
-    portfolioContext
+    settlementContext
   );
   const summary = {
     report_date: reportDate,
     timezone: DEFAULT_TIMEZONE,
-    model_version: "long_term_review_v3",
+    model_version: "long_term_review_v4",
     generated_at: generatedAt,
     data_quality: dataQuality,
     portfolio_context: portfolioContext,
